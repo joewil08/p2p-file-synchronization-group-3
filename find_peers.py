@@ -3,6 +3,7 @@ import threading
 import utils.generate_peer_id as generate_peer_id
 import time
 import utils.get_host_ip as get_host_ip
+import utils.validate_peers as validate_peers
 
 
 PORT = 50000
@@ -25,7 +26,7 @@ def listen_for_new_peers():
         if my_peer_id == peer_id:
             continue
         else:
-            if not is_in_peer_network(peer_id):
+            if validate_peers.validate_peer(peer_id, get_host_ip.my_ip(), peers_in_network):
                 print(f"Found new peer: peer id = {peer_id[:8]}...")
                 peers_in_network[peer_id] = addr
 
