@@ -1,13 +1,7 @@
-import find_peers
 import threading
-import pprint
+import find_peers
+import file_sync  # ✅ Import file synchronization
 from utils import message_forwarding
-
-
-# Import the message forwarding module
-
-#from message_forwarding import forward_message, start_message_listener
-
 
 peers_in_network = find_peers.peers_in_network
 
@@ -26,9 +20,11 @@ def send_message():
 if __name__ == "__main__":
     print("Welcome to the peer-to-peer network!\n")
 
-    # Begins peer discovery in the background
+    # ✅ Start peer discovery in the background
     threading.Thread(target=find_peers.enter_p2p_network, daemon=True).start()
 
-    # Starts listener for forwarding
+    # ✅ Start message forwarding listener
     message_forwarding.start_message_listener()
 
+    # ✅ Start file synchronization in the background
+    threading.Thread(target=file_sync.start_file_sync, daemon=True).start()
