@@ -23,13 +23,13 @@ def is_duplicate_peer(peer_id, peers_in_network):
 
 # Validate an incoming peer connection
 def validate_peer(peer_id, ip, peers_in_network):
-    if not is_valid_peer_id(peer_id):
-        print(f'Invalid peer ID detected: {peer_id}')
-        return False
+    #if not is_valid_peer_id(peer_id):
+        #print(f'Invalid peer ID detected: {peer_id}')
+        #return False
     if not is_valid_ip(ip):
-        print(f'Peer with external IP detected: {ip}')
+        #print(f'Peer with external IP detected: {ip}')
         return False
     if is_duplicate_peer(peer_id, peers_in_network):
-        print(f'Duplicate peer detected: {peer_id}')
+        #print(f'Duplicate peer detected: {peer_id}')
         return False
     return True

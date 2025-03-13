@@ -28,3 +28,11 @@ if __name__ == "__main__":
 
     # ✅ Start file synchronization in the background
     threading.Thread(target=file_sync.start_file_sync, daemon=True).start()
+
+    while True:
+        option = show_main_menu()
+
+        match option:
+            case 0: show_main_menu()
+            case 1: find_peers.find_peers()
+            case 2: print(list(peers_in_network.keys()))

@@ -14,7 +14,7 @@ PEER_DISCOVERY_RESPONSE = "PEER_RESPONSE"
 peers_in_network = {}
 self_peer = None
 sockt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-my_peer_id = generate_peer_id.generate_id(get_host_ip.my_ip(), PORT)
+my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PORT)
 sockt.bind(("", PORT))
 
 
@@ -64,7 +64,8 @@ def get_list_of_peers():
 def register_in_network():
     global self_peer
     ip = get_host_ip.my_ip()
-    self_peer = generate_peer_id.generate_id(ip, PORT)
+    name = input('Enter your username: ')
+    self_peer = generate_peer_id.generate_id(name, ip, PORT)
     return self_peer
 
 def find_peers():

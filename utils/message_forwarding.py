@@ -21,7 +21,7 @@ def forward_message(message, sender_peer_id):
 # listens constantly for incoming messages and handles forwarding
 def listen_for_messages():
     sockt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sockt.bind(("", 50000))
+    sockt.bind(("", 50002))
 
     while True:
         try:
