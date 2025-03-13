@@ -1,6 +1,7 @@
 # files in here will be shared with others
 public_file_names = []
 private_file_names = []
+FILE_PORT = 52000
 
 def send_file():
     '''use programming assignment 2 for reference'''

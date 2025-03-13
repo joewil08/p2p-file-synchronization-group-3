@@ -6,7 +6,7 @@ import utils.get_host_ip as get_host_ip
 import utils.validate_peers as validate_peers
 
 
-PORT = 50000
+PEER_PORT = 50000
 BUFFER_SIZE = 1024
 PEER_DISCOVERY_MESSAGE = "PEER_DISCOVERY"
 PEER_DISCOVERY_RESPONSE = "PEER_RESPONSE"
@@ -15,8 +15,8 @@ peers_in_network = {}
 trusted_list_of_peers = []
 self_peer = None
 sockt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PORT)
-sockt.bind(("", PORT))
+my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PEER_PORT)
+sockt.bind(("", PEER_PORT))
 
 
 def listen_for_new_peers():
@@ -48,7 +48,7 @@ def discover_peers():
     try:
         # broacast sends a message to all devices that are listening for connection on the network
         sockt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sockt.sendto(self_peer.encode(), ("<broadcast>", PORT))
+        sockt.sendto(self_peer.encode(), ("<broadcast>", PEER_PORT))
     except:
         raise Exception ("An error occured while looking for peers :(") 
 
@@ -72,7 +72,7 @@ def register_in_network():
     global self_peer
     ip = get_host_ip.my_ip()
     name = input('Enter your username: ')
-    self_peer = generate_peer_id.generate_id(name, ip, PORT)
+    self_peer = generate_peer_id.generate_id(name, ip, PEER_PORT)
     print("Hello", name + ", you have been registered in the network!")
     return self_peer
 
@@ -83,11 +83,13 @@ def find_peers():
     print(f"Process completed. Found a total of {len(peers_in_network)} peers.")
     return peers_in_network
 
-def add_to_trusted_peer_list(peer_id):
+def add_to_trusted_peer_list():
+    peer_id = input("Enter id to add to list of peers: ")
     #TODO
     pass
 
-def remove_from_trusted_peer_list(peer_id):
+def remove_from_trusted_peer_list():
+    peer_id = input("Enter id to remove to list of peers: ")
     #TODO
     pass
 
