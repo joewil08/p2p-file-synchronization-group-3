@@ -1,55 +1,66 @@
 
 # THIS FILE IS SIMILAR TO MESSAGE FORWARDING >> ONCE THIS FILE IS COMPLETED, DELETE message_forwarding.py
-
-list_of_messages = {}
+import socket
 from peer import peers_in_network
+import peer
+import threading
 
 
-#TODO
-#create a socket to handle messaging
+BUFFER_SIZE = 1024
+MESSAGE_PORT = 51000
+message_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+message_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+message_socket.bind(("", MESSAGE_PORT))
+list_of_messages = {}
+
 
 def reply_to_message():
-    '''this method will be used to reply to a message sent by a peer'''
+    message = input("Enter message to send to user: ") 
+    sender_id = input("Enter the id of the user you want to send the message to:")
+    try:
+        address = peers_in_network.get(sender_id)
+        if address is not None:
+            message_socket.sendto(message.encode('utf-8'), address)
+    except Exception as e:
+            print(f"[ERROR] Failed to forward message to {sender_id}: {e}")
 
-    #TODO get message from user
-    message = "" 
-    #TODO get sender_id from user and use sender_id to get IP,PORT# in peers_in_network
-    sender_id = "" 
-    
-    #TODO --> finish the method implementation
-    pass
-
-
+def get_id(address):
+    for k,v in peers_in_network.items():
+        if v == address:
+            return k
+    return None # no addresss was found
 
 def listen_for_messages():
-    '''
-    this method will be used to listen to incoming messages sent by peers
-    SHOULD BE DONE IN THE BACKGROUND SILENTLY (no print statements unless for testing)
-    '''
-    #TODO
-    pass
+    """
+    Listens for incoming messages from peers in the network.
+    Runs in the background silently.
+    """
+    global list_of_messages
+    while True:
+        try:
+            data, addr = message_socket.recvfrom(BUFFER_SIZE)
+            user = get_id(addr)
+            list_of_messages[user] = data.decode()
+        except Exception as e:
+            print(f"[ERROR] Failed to process incoming message: {e}")
 
 
 def broadcast_message():
-    '''this method will be used to send a message to all peers in network'''
+    message = input("Enter message to send to all users in network: ") 
+    try:
+        message_socket.sendto(message.encode('utf-8'), ("<broadcast>", MESSAGE_PORT))
+    except Exception as e:
+        print(f"[ERROR] Broadcast failed: {e}")
 
-    message = input("Enter message to send to all users in network:") 
-
-    #TODO --> send message to all peers in network
-    pass
-
-def handle_upcoming_message():
-    ''''
-    save the message to the list of messages so that users can viwe them later
-    save it in the format ->  
-        {
-        "Valery-10.1.10.60:50002": "I would like to download a file from your trusted list", 
-        "Mark-10.1.10.97:50002": "Hi"
-        }
-    '''
-    #TODO
-    pass
 
 def display_messages():
-    #TODO
-    pass
+    print("Your latest messages are: ")
+    for k,v in list_of_messages.items():
+        print("FROM: ", k, "\tMESSAGE: ", v)
+    print()
+
+def start_message_server():
+    listen_thread = threading.Thread(target=listen_for_messages, daemon=True)
+    listen_thread.start()
+
+
