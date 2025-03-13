@@ -12,6 +12,7 @@ PEER_DISCOVERY_MESSAGE = "PEER_DISCOVERY"
 PEER_DISCOVERY_RESPONSE = "PEER_RESPONSE"
 
 peers_in_network = {}
+trusted_list_of_peers = []
 self_peer = None
 sockt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PORT)
@@ -61,11 +62,18 @@ def get_list_of_peers():
             keep_searching = False
     return
 
+def is_registered():
+    global self_peer
+    if self_peer is None:
+        return False
+    return True
+    
 def register_in_network():
     global self_peer
     ip = get_host_ip.my_ip()
     name = input('Enter your username: ')
     self_peer = generate_peer_id.generate_id(name, ip, PORT)
+    print("Hello", name + ", you have been registered in the network!")
     return self_peer
 
 def find_peers():
@@ -74,6 +82,30 @@ def find_peers():
     get_list_of_peers()
     print(f"Process completed. Found a total of {len(peers_in_network)} peers.")
     return peers_in_network
+
+def add_to_trusted_peer_list(peer_id):
+    #TODO
+    pass
+
+def remove_from_trusted_peer_list(peer_id):
+    #TODO
+    pass
+
+def view_trusted_peers_list():
+    print(trusted_list_of_peers)
+
+def view_peers_in_network():
+    global self_peer
+    if self_peer is None:
+        self_peer = register_in_network()
+    global peers_in_network
+    print("Peers in network = ", list(peers_in_network.keys()))
+
+def deregister():
+    #TODO
+    # Send a broadcast message to all peers to remove this peer from their list
+    global self_peer
+    self_peer = None
 
 def enter_p2p_network():
     global self_peer

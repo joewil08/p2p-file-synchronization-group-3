@@ -1,7 +1,7 @@
 import socket
 import threading
 import json
-from find_peers import peers_in_network
+from peer import peers_in_network
 
 BUFFER_SIZE = 1024
 
