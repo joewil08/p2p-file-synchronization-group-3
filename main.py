@@ -1,13 +1,13 @@
 import peer
 import threading
-import pprint
-import message_forwarding
 from peer import view_peers_in_network
 from file_sync import view_public_files, view_private_files, request_file
 from message import display_messages, reply_to_message, broadcast_message
 from peer import is_registered, remove_from_trusted_peer_list, add_to_trusted_peer_list
 import message
 
+
+'''THIS FILE SHOULD CONTAIN MINIMAL CODE, AVOID USING THIS FILE!!!'''
 
 peers_in_network = peer.peers_in_network
 
@@ -65,10 +65,6 @@ def show_main_menu():
     option = int(input("Select an option: \n"))
     return option
 
-def send_message():
-    message = input("Enter your message: ")
-    sender_peer_id = peer.my_peer_id  # Get this peer's ID
-    message_forwarding.forward_message(message, sender_peer_id)
 
 if __name__ == "__main__":
     print("Welcome to the peer-to-peer network!\n")
@@ -81,9 +77,6 @@ if __name__ == "__main__":
 
     # start listenning for messages
     message.start_message_server()
-
-    # Starts listener for forwarding <--commented out by Valery -->
-    #message_forwarding.start_message_listener()
 
     def exit_network():
         global using_application

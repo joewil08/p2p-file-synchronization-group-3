@@ -21,6 +21,7 @@ sockt.bind(("", PEER_PORT))
 
 def listen_for_new_peers():
     global my_peer_id
+    global peers_in_network
     while True:
         response, addr = sockt.recvfrom(BUFFER_SIZE)
         peer_id = response.decode()
@@ -28,9 +29,8 @@ def listen_for_new_peers():
             continue
         else:
             if validate_peers.validate_peer(peer_id, get_host_ip.my_ip(), peers_in_network):
-                print(f"Found new peer: peer id = {peer_id[:8]}...")
-                peers_in_network[peer_id] = addr
-
+                if peer_id not in peers_in_network:
+                    peers_in_network[peer_id] = addr
             respond_to_peer(addr)
 
 def is_in_peer_network(id):
@@ -70,9 +70,11 @@ def is_registered():
     
 def register_in_network():
     global self_peer
+    global my_peer_id
     ip = get_host_ip.my_ip()
     name = input('Enter your username: ')
     self_peer = generate_peer_id.generate_id(name, ip, PEER_PORT)
+    my_peer_id = generate_peer_id.generate_id(name, get_host_ip.my_ip(), PEER_PORT)
     print("Hello", name + ", you have been registered in the network!")
     return self_peer
 
