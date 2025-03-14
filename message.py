@@ -1,8 +1,7 @@
 
 # THIS FILE IS SIMILAR TO MESSAGE FORWARDING >> ONCE THIS FILE IS COMPLETED, DELETE message_forwarding.py
 import socket
-from peer import peers_in_network
-import peer
+from peer import peers_in_network, PEER_PORT
 import threading
 
 
@@ -18,9 +17,15 @@ def reply_to_message():
     message = input("Enter message to send to user: ") 
     sender_id = input("Enter the id of the user you want to send the message to:")
     try:
-        address = peers_in_network.get(sender_id)
-        if address is not None:
-            message_socket.sendto(message.encode('utf-8'), address)
+        original_address = peers_in_network.get(sender_id)
+        ip, port = original_address
+        port = MESSAGE_PORT
+        new_address = (ip, port)
+        if original_address is not None:
+            message_socket.sendto(message.encode('utf-8'), new_address)
+            print("message sent successfully")
+        else:
+            print("Message was not sent to user")
     except Exception as e:
             print(f"[ERROR] Failed to forward message to {sender_id}: {e}")
 
@@ -39,7 +44,7 @@ def listen_for_messages():
     while True:
         try:
             data, addr = message_socket.recvfrom(BUFFER_SIZE)
-            user = get_id(addr)
+            user = get_id((addr[0], PEER_PORT))
             list_of_messages[user] = data.decode()
         except Exception as e:
             print(f"[ERROR] Failed to process incoming message: {e}")
@@ -56,7 +61,8 @@ def broadcast_message():
 def display_messages():
     print("Your latest messages are: ")
     for k,v in list_of_messages.items():
-        print("FROM: ", k, "\tMESSAGE: ", v)
+        if k is not None:
+            print("FROM:", k, "\tMESSAGE:", v)
     print()
 
 def start_message_server():
