@@ -25,25 +25,11 @@ def getFileNames():
     return files
 
 
-def getFileContentInBinary(file_name):
+def getFilePath(file_name):
     global dir_path
     file_path = f"{dir_path}/{file_name}"
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            return f.read()
-    except Exception as e:
-        print(f"Error reading file: {e}")
-        return None
+    return file_path
     
-def getFileContent(file_name):
-    global dir_path
-    file_path = f"{dir_path}/{file_name}"
-    try:
-        with open(file_path, "r") as f:
-            return f.read()
-    except Exception as e:
-        print(f"Error reading file: {e}")
-        return None
 
 def setDirPath(new_path):
     global dir_path
