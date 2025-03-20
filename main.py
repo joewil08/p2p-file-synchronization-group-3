@@ -1,7 +1,7 @@
 import peer
 import threading
 from peer import view_peers_in_network
-from file_sync import view_public_files, view_private_files, request_file
+from file_sync import view_public_files, view_private_files, add_new_directory, start_file_listeners
 from message import display_messages, reply_to_message, broadcast_message
 from peer import is_registered, remove_from_trusted_peer_list, add_to_trusted_peer_list
 import message
@@ -16,7 +16,8 @@ def file_submenu():
     while stay_in_file_submenu:
         print("\nPress 1 to view public files available to download")
         print("Press 2 to view private files available to download")
-        print("Press 3 to request a file using an id")
+        print("Press 3 to add a directory for sharing")
+        print("Press 4 to request a file")
         print("Press 0 to go back to main menu")
 
         option = int(input("Select an option: "))
@@ -24,7 +25,8 @@ def file_submenu():
             case 0: stay_in_file_submenu = False
             case 1: view_public_files()
             case 2: view_private_files()
-            case 3: request_file(input("Enter file_id: "))
+            case 3: add_new_directory()
+            case 4: view_public_files() # gaves option to download
 
 def message_submenu():
     stay_in_file_submenu = True
@@ -77,6 +79,9 @@ if __name__ == "__main__":
 
     # start listenning for messages
     message.start_message_server()
+
+    # starts all servers related to file sharing
+    start_file_listeners()
 
     def exit_network():
         global using_application
