@@ -27,14 +27,39 @@ FILE_REQUEST_SOCKET.bind(("", FILE_REQUESTS_PORT))
 
 def file_sharing_listener():
     '''When a file comes in, saves the file automatically'''
-    #TODO : listens for the file and save it [JARED]
-    pass
+    global FILE_PORT
+    file_sharing_listener_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    port = FILE_PORT
+    print("Server listening on port: " , port)
+    file_sharing_listener_socket.bind(("", port))
+    while True:
+        response, addr = file_sharing_listener_socket.recv(BUFFER_SIZE)
+        print("Someone requested to download a file: " + response.decode())
 
-def file_sharing_server(file_path, addr):
-    '''send the file content data'''
-    #TODO : shares the file [JARED]
-    # read the file from the file path and send it out
-    pass
+def file_sharing_server(filename, address):
+    """Send a file to a peer who requested it."""
+    try:
+        file_size = get_file_size(filename)
+        file_size_bytes = file_size.to_bytes(8, byteorder='big')
+
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect(address)
+        client_socket.send(file_size_bytes + filename.encode())
+
+        response = client_socket.recv(BUFFER_SIZE)
+        if response != b'go ahead':
+            print("Server did not respond with go ahead.")
+            return
+
+        with open(filename, 'rb') as f:
+            while chunk := f.read(BUFFER_SIZE):
+                client_socket.send(chunk)
+
+        print(f"✅ Sent file: {filename} to {address[0]}")
+        client_socket.close()
+    except Exception as e:
+        print(f"❌ Error sending file: {e}") 
+          
 
 def upload_file():
     '''use programming assignment 2 for reference'''
@@ -61,7 +86,7 @@ def file_request_listener():
 def file_request_server():
     address = extract_ip_and_port(input("Enter user id associated with the file: "))
     file_name = input("Enter file name: ")
-    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
+    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address[1])
     print(f"File requested: {file_name}")
     return
 
@@ -139,5 +164,7 @@ def start_file_listeners():
     syncing_listener_thread.start()
     file_listener_thread = threading.Thread(target=file_request_listener, daemon=True)
     file_listener_thread.start()
+    file_sharing_listener_thread = threading.Thread(target=file_sharing_listener, daemon=True)
+    file_sharing_listener_thread.start()
     # TODO : start file sending listener [JARED]
 
