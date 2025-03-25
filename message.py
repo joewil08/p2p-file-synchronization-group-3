@@ -6,7 +6,7 @@ import threading
 
 
 BUFFER_SIZE = 1024
-MESSAGE_PORT = 51000
+MESSAGE_PORT = 51001
 message_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 message_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 message_socket.bind(("", MESSAGE_PORT))
