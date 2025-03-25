@@ -5,6 +5,8 @@ import utils.generate_peer_id as generate_peer_id
 import time
 import threading
 import peer
+import os
+import sys
 
 
 public_file_names_available = {}
@@ -20,71 +22,16 @@ FILE_REQUESTS_PORT = 52300
 
 BUFFER_SIZE = 1024
 
-
+#for sharing messages before file transfer
 FILE_REQUEST_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 FILE_REQUEST_SOCKET.bind(("", FILE_REQUESTS_PORT))
 
-
-def file_sharing_listener():
-    '''When a file comes in, saves the file automatically'''
-    global FILE_PORT
-    file_sharing_listener_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    port = FILE_PORT
-    print("Server listening on port: " , port)
-    file_sharing_listener_socket.bind(("", port))
-    while True:
-        response, addr = file_sharing_listener_socket.recvfrom(BUFFER_SIZE)
-        file_name = response.decode()
-        file_sharing_server(file_name, addr)
-        print("Someone requested to download a file: " + response.decode())
-
-def file_sharing_server(filename, address):
-    """Send a file to a peer who requested it."""
-
-    ip, port = extract_ip_and_port(address)
-    port = FILE_PORT
-    address = (ip, port)
-
-    try:
-        file_size = get_file_size(filename)
-        file_size_bytes = file_size.to_bytes(8, byteorder='big')
-
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect(address)
-        client_socket.send(file_size_bytes + filename.encode())
-
-        response = client_socket.recv(BUFFER_SIZE)
-        if response != b'go ahead':
-            print("Server did not respond with go ahead.")
-            return
-
-        with open(filename, 'rb') as f:
-            while chunk := f.read(BUFFER_SIZE):
-                client_socket.send(chunk)
-
-        print(f"✅ Sent file: {filename} to {address[0]}")
-        client_socket.close()
-    except Exception as e:
-        print(f"❌ Error sending file: {e}") 
-          
-
-def upload_file():
-    '''use programming assignment 2 for reference'''
-    #TODO : save the file to a folder
-    pass
-
-def get_file_size():
-    '''use programming assignment 2 for reference'''
-    #TODO : get the size of the file
-    pass
-
-def get_file_info():
-    '''use programming assignment 2 for reference'''
-    #TODO
-    pass
+# for sharing files after receiving message to download file
+FILE_DATA_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
-    '''When a file request comes in, shares the file automatically'''
+    '''Listening for file request messages, only messages, not files!'''
     file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
     print("file request received for file: ",file_name.decode())
     file_path = files_directory.getFilePath(file_name)
@@ -97,6 +44,80 @@ def file_request_server():
     print(f"File requested: {file_name}")
     return
 
+def upload_file(conn_socket: socket, file_name: str, file_size: int):
+    # this method will be used to download the file
+    with open(file_name, 'wb') as file:
+        retrieved_size = 0
+        try:
+            while retrieved_size < file_size:
+                chunk = conn_socket.recv(BUFFER_SIZE)
+                retrieved_size += len(chunk)
+                file.write(chunk)
+        except OSError as oe:
+            print(oe)
+            os.remove(file_name)
+
+def file_sharing_listener():
+    '''When a file comes in, saves the file automatically'''
+    FILE_DATA_SOCKET.listen(20)
+    try:
+        while True:
+            (conn_socket, addr) = FILE_DATA_SOCKET.accept()
+            message = conn_socket.recv(BUFFER_SIZE)
+            message_info = get_file_info(message)
+            file_name = message_info[0]
+            file_size = message_info[1]
+            print(f'Received: {file_name} with size = {file_size}')
+            conn_socket.sendall(b'go ahead')
+            upload_file(conn_socket, file_name, file_size)
+            conn_socket.close()
+    except KeyboardInterrupt as ki:
+        None
+       
+def get_file_info(data: bytes) -> (str, int):
+    return data[8:].decode(), int.from_bytes(data[:8],byteorder='big')
+
+
+def file_sharing_server(filename, address):
+    """Send a file to a peer who requested it [using TCP]"""
+
+    ip, port = extract_ip_and_port(address)
+    port = FILE_PORT
+    # client tcp address
+    address = (ip, port)
+
+    file_info = get_file_size(filename).to_bytes(8, byteorder='big') + filename.encode('utf-8')
+    
+    try:
+        FILE_DATA_SOCKET.connect(address)
+        FILE_DATA_SOCKET.sendall(file_info)
+        try:
+            data, server = FILE_DATA_SOCKET.recvfrom(BUFFER_SIZE)
+            if data != b'go ahead':
+                raise OSError('response - was not go ahead!')
+        except:
+            raise OSError('Unable to share the file')
+
+        with open(filename, 'rb') as file:
+            is_done = False
+            while not is_done:
+                chunk = file.read(BUFFER_SIZE)
+                if len(chunk) > 0:
+                    FILE_DATA_SOCKET.sendall(chunk)
+                else:
+                    is_done = True
+    except Exception as e:
+        print(f"Error sending file: {e}")
+
+
+def get_file_size(file_name: str) -> int:
+    size = 0
+    try:
+        size = os.path.getsize(file_name)
+    except FileNotFoundError as fnfe:
+        print(fnfe)
+        sys.exit(1)
+    return size
 
 def extract_ip_and_port(peer_id):
     parts = peer_id.split('_')
@@ -173,5 +194,5 @@ def start_file_listeners():
     file_listener_thread.start()
     file_sharing_listener_thread = threading.Thread(target=file_sharing_listener, daemon=True)
     file_sharing_listener_thread.start()
-    # TODO : start file sending listener [JARED]
+
 
