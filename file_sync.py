@@ -33,11 +33,18 @@ def file_sharing_listener():
     print("Server listening on port: " , port)
     file_sharing_listener_socket.bind(("", port))
     while True:
-        response, addr = file_sharing_listener_socket.recv(BUFFER_SIZE)
+        response, addr = file_sharing_listener_socket.recvfrom(BUFFER_SIZE)
+        file_name = response.decode()
+        file_sharing_server(file_name, addr)
         print("Someone requested to download a file: " + response.decode())
 
 def file_sharing_server(filename, address):
     """Send a file to a peer who requested it."""
+
+    ip, port = extract_ip_and_port(address)
+    port = FILE_PORT
+    address = (ip, port)
+
     try:
         file_size = get_file_size(filename)
         file_size_bytes = file_size.to_bytes(8, byteorder='big')
@@ -86,7 +93,7 @@ def file_request_listener():
 def file_request_server():
     address = extract_ip_and_port(input("Enter user id associated with the file: "))
     file_name = input("Enter file name: ")
-    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address[1])
+    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
     print(f"File requested: {file_name}")
     return
 
