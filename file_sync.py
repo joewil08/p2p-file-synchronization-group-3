@@ -33,19 +33,22 @@ FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 def file_request_listener():
     '''Listening for file request messages, only messages, not files!'''
     file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
-    print("file request received for file: ",file_name.decode())
+    file_name = file_name.decode()
+    print("file request received for file: ",file_name) #TODO -> comment out this line
     file_path = files_directory.getFilePath(file_name)
     file_sharing_server(file_path, addr)
 
 def file_request_server():
     address = extract_ip_and_port(input("Enter user id associated with the file: "))
+    #address[1] = FILE_REQUESTS_PORT # TODO -> uncomment 
     file_name = input("Enter file name: ")
     FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
     print(f"File requested: {file_name}")
     return
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
-    # this method will be used to download the file
+    # this method will be used to download the file in the same folder as the program
+    file_name = os.path.basename(file_name)
     with open(file_name, 'wb') as file:
         retrieved_size = 0
         try:
@@ -56,6 +59,7 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
         except OSError as oe:
             print(oe)
             os.remove(file_name)
+    conn_socket.close()
 
 def file_sharing_listener():
     '''When a file comes in, saves the file automatically'''
@@ -67,10 +71,9 @@ def file_sharing_listener():
             message_info = get_file_info(message)
             file_name = message_info[0]
             file_size = message_info[1]
-            print(f'Received: {file_name} with size = {file_size}')
+            print(f'Receiving: {os.path.basename(file_name)} with size = {file_size}\n') #TODO -> comment out this line
             conn_socket.sendall(b'go ahead')
             upload_file(conn_socket, file_name, file_size)
-            conn_socket.close()
     except KeyboardInterrupt as ki:
         None
        
@@ -79,35 +82,36 @@ def get_file_info(data: bytes) -> (str, int):
 
 
 def file_sharing_server(filename, address):
-    """Send a file to a peer who requested it [using TCP]"""
-
-    ip, port = extract_ip_and_port(address)
+    """Send a requested file to a peer over a TCP connection."""    
+    ip, port = address
     port = FILE_PORT
-    # client tcp address
-    address = (ip, port)
+    port = FILE_PORT - 10000 #TODO --> comment out this line
+
+
+    if not os.path.exists(filename):
+        print(f"Error: File {filename} does not exist")
+        return
 
     file_info = get_file_size(filename).to_bytes(8, byteorder='big') + filename.encode('utf-8')
-    
+
     try:
-        FILE_DATA_SOCKET.connect(address)
-        FILE_DATA_SOCKET.sendall(file_info)
-        try:
-            data, server = FILE_DATA_SOCKET.recvfrom(BUFFER_SIZE)
-            if data != b'go ahead':
-                raise OSError('response - was not go ahead!')
-        except:
-            raise OSError('Unable to share the file')
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((ip, port))
+        client_socket.sendall(file_info)
+
+        data = client_socket.recv(BUFFER_SIZE)
+        if data != b'go ahead':
+            raise OSError('Response was not "go ahead"!')
 
         with open(filename, 'rb') as file:
-            is_done = False
-            while not is_done:
-                chunk = file.read(BUFFER_SIZE)
-                if len(chunk) > 0:
-                    FILE_DATA_SOCKET.sendall(chunk)
-                else:
-                    is_done = True
+            while chunk := file.read(BUFFER_SIZE):
+                client_socket.sendall(chunk)
+
+        print(f"Successfully sent file {os.path.basename(filename)} to a peer.") #TODO -> comment out this line
     except Exception as e:
         print(f"Error sending file: {e}")
+    finally:
+        client_socket.close()
 
 
 def get_file_size(file_name: str) -> int:
@@ -125,12 +129,13 @@ def extract_ip_and_port(peer_id):
         return None, None
     ip_address = parts[1]
     # using the file port number instead of getting it from peer_id 
-    port_number =  FILE_PORT
-    address = (ip_address, port_number)
+    # port_number =  FILE_PORT
+    port_number =  parts[2] # -> may have to change it [testing]
+    address = (ip_address, int(port_number))
     return address
 
 def view_public_files():
-    '''this method will be used to get the id & file name of all the public files available to download on the network'''
+    '''this method will be used to get the peer ids & file name of all the public files available to download on the network'''
     print(public_file_names_available)
     print("Type 1 to download a file")
     print("Type 2 to go back to menu")
@@ -169,8 +174,9 @@ def syncing_server():
             current_time = time.time()
             for file_name, modified_date in files_directory.getFileNames().items():
                 data = f"{user_id}-{file_name}"
-                file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
-    
+                #file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER)) #TODO -> uncomment this line
+                file_syncing_server.sendto(data.encode(), ("<broadcast>", (FILE_SYNC_LISTENER-10000))) #TODO -> comment out this line 
+
 
 def add_new_directory():
     file_dir_name = input("Enter directory path to add to shared directories: ")
@@ -194,5 +200,4 @@ def start_file_listeners():
     file_listener_thread.start()
     file_sharing_listener_thread = threading.Thread(target=file_sharing_listener, daemon=True)
     file_sharing_listener_thread.start()
-
 
