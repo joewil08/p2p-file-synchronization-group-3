@@ -34,16 +34,15 @@ def file_request_listener():
     '''Listening for file request messages, only messages, not files!'''
     file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
     file_name = file_name.decode()
-    print("file request received for file: ",file_name) #TODO -> comment out this line
+    #print("file request received for file: ",file_name) #TODO -> should be a log
     file_path = files_directory.getFilePath(file_name)
     file_sharing_server(file_path, addr)
 
 def file_request_server():
-    address = extract_ip_and_port(input("Enter user id associated with the file: "))
-    #address[1] = FILE_REQUESTS_PORT # TODO -> uncomment 
+    address = extract_ip_and_port_for_filerequest(input("Enter user id associated with the file: "))
     file_name = input("Enter file name: ")
     FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-    print(f"File requested: {file_name}")
+    print(f"File requested: {file_name} from {address}")
     return
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
@@ -71,7 +70,7 @@ def file_sharing_listener():
             message_info = get_file_info(message)
             file_name = message_info[0]
             file_size = message_info[1]
-            print(f'Receiving: {os.path.basename(file_name)} with size = {file_size}\n') #TODO -> comment out this line
+            #print(f'Receiving: {os.path.basename(file_name)} with size = {file_size}\n') #TODO -> should be a log
             conn_socket.sendall(b'go ahead')
             upload_file(conn_socket, file_name, file_size)
     except KeyboardInterrupt as ki:
@@ -85,8 +84,6 @@ def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
     ip, port = address
     port = FILE_PORT
-    port = FILE_PORT - 10000 #TODO --> comment out this line
-
 
     if not os.path.exists(filename):
         print(f"Error: File {filename} does not exist")
@@ -107,7 +104,7 @@ def file_sharing_server(filename, address):
             while chunk := file.read(BUFFER_SIZE):
                 client_socket.sendall(chunk)
 
-        print(f"Successfully sent file {os.path.basename(filename)} to a peer.") #TODO -> comment out this line
+        #print(f"Successfully sent file {os.path.basename(filename)} to a peer.") #TODO -> should be a log
     except Exception as e:
         print(f"Error sending file: {e}")
     finally:
@@ -131,6 +128,17 @@ def extract_ip_and_port(peer_id):
     # using the file port number instead of getting it from peer_id 
     # port_number =  FILE_PORT
     port_number =  parts[2] # -> may have to change it [testing]
+    address = (ip_address, int(port_number))
+    return address
+
+def extract_ip_and_port_for_filerequest(peer_id):
+    parts = peer_id.split('_')
+    if len(parts) < 3:
+        return None, None
+    ip_address = parts[1]
+    # using the file port number instead of getting it from peer_id 
+    port_number = FILE_REQUESTS_PORT
+    #port_number =  parts[2] # -> may have to change it [testing]
     address = (ip_address, int(port_number))
     return address
 
@@ -174,8 +182,7 @@ def syncing_server():
             current_time = time.time()
             for file_name, modified_date in files_directory.getFileNames().items():
                 data = f"{user_id}-{file_name}"
-                #file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER)) #TODO -> uncomment this line
-                file_syncing_server.sendto(data.encode(), ("<broadcast>", (FILE_SYNC_LISTENER-10000))) #TODO -> comment out this line 
+                file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
 
 def add_new_directory():
