@@ -77,7 +77,7 @@ def get_list_of_peers():
     start_time = time.time() 
     keep_searching = True
     while keep_searching:
-        if time.time() - start_time > 30:
+        if time.time() - start_time > 15:
             keep_searching = False
     return
 
@@ -136,7 +136,9 @@ def enter_p2p_network():
         self_peer = register_in_network()
     current_time  = time.time()
     while True:
-        if time.time() - current_time > 15:
+        if time.time() - current_time > 10:
             share_status = threading.Thread(target=discover_peers, daemon=True)
             share_status.start()
             current_time = time.time()
+
+            
