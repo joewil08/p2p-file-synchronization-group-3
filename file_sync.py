@@ -46,6 +46,13 @@ def file_request_server():
     print(f"File requested: {file_name} from {address}")
     return
 
+def file_request_changes(address, file_name):
+    address = extract_ip_and_port_for_filerequest(address)
+    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
+    print(f"----File requested---: {file_name} from {address}")
+    return
+
+
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
     # this method will be used to download the file in the same folder as the program
     file_name = os.path.basename(file_name)
@@ -159,6 +166,7 @@ def handle_file_syncing_listener(data):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
             print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
         return
