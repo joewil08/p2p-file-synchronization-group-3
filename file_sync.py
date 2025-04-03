@@ -13,13 +13,13 @@ public_file_names_available = {}
 private_file_names = []
 
 # USED TO TRANSFER FILES
-FILE_PORT = 52000
+FILE_PORT = 52001
 BUFFER_SIZE = 1024
 
 # These port numbers will be used and run in the background 
-FILE_SYNC_LISTENER = 52100
-FILE_SYNC_SERVER = 52200
-FILE_REQUESTS_PORT = 52300
+FILE_SYNC_LISTENER = 52101
+FILE_SYNC_SERVER = 52201
+FILE_REQUESTS_PORT = 52301
 
 BUFFER_SIZE = 1024
 
@@ -208,4 +208,17 @@ def start_file_listeners():
     file_listener_thread.start()
     file_sharing_listener_thread = threading.Thread(target=file_sharing_listener, daemon=True)
     file_sharing_listener_thread.start()
+    file_change_watcher_thread = threading.Thread(target=file_change_watcher, daemon=True)
+    file_change_watcher_thread.start()
+def file_change_watcher():
+    """Watches shared directory and notifies peers of file changes."""
+    watcher_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    watcher_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+    while True:
+        changes = files_directory.detect_file_changes()
+        for action, file_name in changes:
+            message = f"FILE_UPDATE:{peer.my_peer_id}:{file_name}:{action}:{time.time()}"
+            watcher_socket.sendto(message.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
+            print(f"📢 Broadcasted: {file_name} was {action}")
+        time.sleep(5)

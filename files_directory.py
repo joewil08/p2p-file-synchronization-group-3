@@ -45,3 +45,22 @@ def setDirPath(new_path):
     else:
         print("Invalid directory path")
 
+def detect_file_changes():
+    global files, dir_path
+    if not dir_path:
+        return []
+
+    updated_files = {f.name: getLastModifiedDate(f) for f in Path(dir_path).iterdir() if f.is_file()}
+
+    changes = []
+    for f in updated_files:
+        if f not in files:
+            changes.append(("added", f))
+        elif updated_files[f] != files[f]:
+            changes.append(("modified", f))
+    for f in files:
+        if f not in updated_files:
+            changes.append(("deleted", f))
+
+    files = updated_files
+    return changes
