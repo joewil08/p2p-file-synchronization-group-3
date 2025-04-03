@@ -7,6 +7,7 @@ import threading
 import peer
 import os
 import sys
+import hashlib
 
 
 public_file_names_available = {}
@@ -47,6 +48,7 @@ def file_request_server():
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
     # this method will be used to download the file in the same folder as the program
+    file_hash = hashlib.sha256()
     file_name = os.path.basename(file_name)
     with open(file_name, 'wb') as file:
         retrieved_size = 0
@@ -55,9 +57,18 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
                 chunk = conn_socket.recv(BUFFER_SIZE)
                 retrieved_size += len(chunk)
                 file.write(chunk)
+                file_hash.update(chunk)
         except OSError as oe:
             print(oe)
             os.remove(file_name)
+
+    received_hash = conn_socket.recv(32)
+    if received_hash == file_hash.digest():
+        print(f"File {file_name} received successfully with valid integrity")
+    else:
+        print(f"Warning: Hash mismatch for file {file_name}")
+        os.remove(file_name)
+
     conn_socket.close()
 
 def file_sharing_listener():
@@ -90,6 +101,7 @@ def file_sharing_server(filename, address):
         return
 
     file_info = get_file_size(filename).to_bytes(8, byteorder='big') + filename.encode('utf-8')
+    file_hash = hashlib.sha256()
 
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -103,6 +115,9 @@ def file_sharing_server(filename, address):
         with open(filename, 'rb') as file:
             while chunk := file.read(BUFFER_SIZE):
                 client_socket.sendall(chunk)
+                file_hash.update(chunk)
+
+        client_socket.sendall(file_hash.digest())
 
         #print(f"Successfully sent file {os.path.basename(filename)} to a peer.") #TODO -> should be a log
     except Exception as e:
