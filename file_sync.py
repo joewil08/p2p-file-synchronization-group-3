@@ -13,13 +13,13 @@ public_file_names_available = {}
 private_file_names = []
 
 # USED TO TRANSFER FILES
-FILE_PORT = 52001
+FILE_PORT = 52000
 BUFFER_SIZE = 1024
 
 # These port numbers will be used and run in the background 
-FILE_SYNC_LISTENER = 52101
-FILE_SYNC_SERVER = 52201
-FILE_REQUESTS_PORT = 52301
+FILE_SYNC_LISTENER = 52100
+FILE_SYNC_SERVER = 52200
+FILE_REQUESTS_PORT = 52300
 
 BUFFER_SIZE = 1024
 
@@ -155,6 +155,15 @@ def view_public_files():
         return
 
 def handle_file_syncing_listener(data):
+    if data.startswith("FILE_UPDATE:"):
+        try:
+            _, peer_id, file_name, action, timestamp = data.split(":")
+            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+        except Exception as e:
+            print(f"⚠️ Failed to parse update: {e}")
+        return
+
+    # Default behavior for file availability sync
     slash_index = data.find('-')
     user_id = data[:slash_index]
     file_name = data[slash_index+1:]
@@ -189,6 +198,13 @@ def syncing_server():
 def add_new_directory():
     file_dir_name = input("Enter directory path to add to shared directories: ")
     files_directory.setDirPath(file_dir_name)
+    # 📡 Immediately broadcast all files in the new directory
+    user_id = peer.my_peer_id
+    sync_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    for file_name, _ in files_directory.getFileNames().items():
+        data = f"{user_id}-{file_name}"
+        sync_socket.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
 def add_to_private_files_list():
     #TODO [DON'T WORK ON IT UNTIL PROJECT IS COMPLETE]
