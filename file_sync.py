@@ -33,8 +33,8 @@ FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
     '''Listening for file request messages, only messages, not files!'''
-    print(f"first 10 words from the file: {file_name.decode()[:10]}")
     file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
+
     file_name = file_name.decode()
     #print("file request received for file: ",file_name) #TODO -> should be a log
     file_path = files_directory.getFilePath(file_name)
@@ -92,7 +92,7 @@ def get_file_info(data: bytes) -> (str, int):
 
 def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
-    print(f"what was received in file sharing server: filename:{filename}, address:{address} ")
+    print(f"---sharing---: filename:{filename}, address:{address} ")
     ip, port = address
     port = FILE_PORT
 
