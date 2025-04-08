@@ -38,14 +38,16 @@ def file_request_listener():
             file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
             file_name = file_name.decode()
             print(f"📥 Received file request: {file_name} from {addr}")
-            if files_directory.file_exists(file_name):
-                print("--- this file already exists lol ----")
-            file_path = files_directory.getFilePath(file_name)
-            threading.Thread(
-                target=file_sharing_server,
-                args=(file_path, addr),
-                daemon=True
-            ).start()
+            
+            if (addr[0] == get_host_ip.my_ip()):
+                print("File request from my self") #TODO -> delete this crp
+            else:
+                file_path = files_directory.getFilePath(file_name)
+                threading.Thread(
+                    target=file_sharing_server,
+                    args=(file_path, addr),
+                    daemon=True
+                ).start()
         except Exception as e:
             print(f"⚠️ Error in file_request_listener: {e}")
 
@@ -65,9 +67,23 @@ def file_request_changes(address, file_name):
 
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
-    # this method will be used to download the file in the same folder as the program
+    """This method uploads the file to the appropriate directory.
+    - If the file already exists in the shared directory, it's uploaded there.
+    - If not, it's downloaded to the current directory.
+    """
+    shared_directory = files_directory.getDirPath()
+
     file_name = os.path.basename(file_name)
-    with open(file_name, 'wb') as file:
+
+    file_path = os.path.join(shared_directory, file_name)
+    
+    if os.path.exists(file_path):
+        print(f"File '{file_name}' already exists in the shared directory. Uploading it.")
+    else:
+        print(f"File '{file_name}' does not exist in the shared directory. Downloading it.")
+        file_path = file_name
+
+    with open(file_path, 'wb') as file:
         retrieved_size = 0
         try:
             while retrieved_size < file_size:
@@ -76,7 +92,7 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
                 file.write(chunk)
         except OSError as oe:
             print(oe)
-            os.remove(file_name)
+            os.remove(file_path) 
     conn_socket.close()
 
 def file_sharing_listener():
