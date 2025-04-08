@@ -36,12 +36,11 @@ def file_request_listener():
     while True:
         try:
             file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
-            file_name = file_name.decode()
-            print(f"📥 Received file request: {file_name} from {addr}")
-            
+            file_name = file_name.decode()            
             if (addr[0] == get_host_ip.my_ip()):
-                print("File request from my self") #TODO -> delete this crp
+                print("Ignore")
             else:
+                print(f"📥 Received file request: {file_name} from {addr}")
                 file_path = files_directory.getFilePath(file_name)
                 threading.Thread(
                     target=file_sharing_server,
@@ -69,11 +68,6 @@ def file_request_changes(address, file_name):
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
     # this method will be used to download the file in the same folder as the program
     file_name = os.path.basename(file_name)
-    if(files_directory.file_exists(file_name)):
-        print(f"file will saved here: {files_directory.getFilePath(file_name)}")
-        file_name = files_directory.getFilePath(file_name)
-    else:
-        print("this is a new file. it will be saved in the current directory")
     with open(file_name, 'wb') as file:
         retrieved_size = 0
         try:
@@ -191,7 +185,7 @@ def handle_file_syncing_listener(data):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
             print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
-            file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
+            #file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
             file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
