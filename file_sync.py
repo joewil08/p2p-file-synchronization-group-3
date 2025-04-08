@@ -58,10 +58,17 @@ def file_request_server():
     print(f"File requested: {file_name} from {address}")
     return
 
-def file_request_changes(address, file_name):
-    address = extract_ip_and_port_for_filerequest(address)
-    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-    print(f"----A File was requested---: filename: {file_name} from: {address}")
+def file_request_changes(address, file_name):    
+    current_directory = os.getcwd()
+    all_files_and_dirs = os.listdir(current_directory)
+    files = [f for f in all_files_and_dirs if os.path.isfile(os.path.join(current_directory, f))]
+    for file in files:
+        if file == file_name:
+            address = extract_ip_and_port_for_filerequest(address)
+            FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
+            print(f"----A File was requested---: filename: {file_name} from: {address}")
+            return 
+    print("idc, i don't have that file")
     return
 
 
@@ -185,7 +192,6 @@ def handle_file_syncing_listener(data):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
             print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
-            #file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
             file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
