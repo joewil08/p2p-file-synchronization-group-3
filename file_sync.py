@@ -68,7 +68,9 @@ def file_request_changes(address, file_name):
             FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
             print(f"----A File was requested---: filename: {file_name} from: {address}")
             return 
-    print("idc, i don't have that file")
+    
+    # file is not in current directory - other peers are able to download but not edit the file
+    # if you want the file to be edited, make sure it's in current directory
     return
 
 
