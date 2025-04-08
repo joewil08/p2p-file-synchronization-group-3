@@ -67,23 +67,14 @@ def file_request_changes(address, file_name):
 
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
-    """This method uploads the file to the appropriate directory.
-    - If the file already exists in the shared directory, it's uploaded there.
-    - If not, it's downloaded to the current directory.
-    """
-    shared_directory = files_directory.getDirPath()
-
+    # this method will be used to download the file in the same folder as the program
     file_name = os.path.basename(file_name)
-
-    file_path = os.path.join(shared_directory, file_name)
-    
-    if os.path.exists(file_path):
-        print(f"File '{file_name}' already exists in the shared directory. Uploading it.")
+    if(files_directory.file_exists(file_name)):
+        print(f"file will saved here: {files_directory.getFilePath(file_name)}")
+        file_name = files_directory.getFilePath(file_name)
     else:
-        print(f"File '{file_name}' does not exist in the shared directory. Downloading it.")
-        file_path = file_name
-
-    with open(file_path, 'wb') as file:
+        print("this is a new file. it will be saved in the current directory")
+    with open(file_name, 'wb') as file:
         retrieved_size = 0
         try:
             while retrieved_size < file_size:
@@ -92,7 +83,7 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
                 file.write(chunk)
         except OSError as oe:
             print(oe)
-            os.remove(file_path) 
+            os.remove(file_name)
     conn_socket.close()
 
 def file_sharing_listener():
