@@ -45,8 +45,13 @@ def setDirPath(new_path):
     else:
         print("Invalid directory path")
 
-def file_exists(file_name, files_dict=dir_path):
-    return file_name in files_dict
+def file_exists(file_name, files_dict):
+    global dir_path
+    if files_dict == None:
+        if dir_path != None:
+            return file_name in dir_path
+    else: 
+        return file_name in files_dict
 
 def detect_file_changes():
     global files, dir_path
