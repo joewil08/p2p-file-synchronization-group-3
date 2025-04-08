@@ -33,6 +33,7 @@ FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
     '''Listening for file request messages, only messages, not files!'''
+    print(f"first 10 words from the file: {file_name.decode()[:10]}")
     file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
     file_name = file_name.decode()
     #print("file request received for file: ",file_name) #TODO -> should be a log
@@ -40,6 +41,7 @@ def file_request_listener():
     file_sharing_server(file_path, addr)
 
 def file_request_server():
+    """To download the file"""
     address = extract_ip_and_port_for_filerequest(input("Enter user id associated with the file: "))
     file_name = input("Enter file name: ")
     FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
@@ -49,7 +51,7 @@ def file_request_server():
 def file_request_changes(address, file_name):
     address = extract_ip_and_port_for_filerequest(address)
     FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-    print(f"----File requested---: {file_name} from {address}")
+    print(f"----A File was requested---: filename: {file_name} from: {address}")
     return
 
 
@@ -90,6 +92,7 @@ def get_file_info(data: bytes) -> (str, int):
 
 def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
+    print(f"what was received in file sharing server: filename:{filename}, address:{address} ")
     ip, port = address
     port = FILE_PORT
 
@@ -166,6 +169,7 @@ def handle_file_syncing_listener(data):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
             print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            #file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
             file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
