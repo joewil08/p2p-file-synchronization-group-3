@@ -38,6 +38,8 @@ def file_request_listener():
             file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
             file_name = file_name.decode()
             print(f"📥 Received file request: {file_name} from {addr}")
+            if files_directory.file_exists(file_name):
+                print("--- this file already exists lol ----")
             file_path = files_directory.getFilePath(file_name)
             threading.Thread(
                 target=file_sharing_server,
@@ -182,7 +184,7 @@ def handle_file_syncing_listener(data):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
             print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
-            #file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
+            file_sharing_server(file_name, extract_ip_and_port_for_filerequest(peer_id))
             file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
