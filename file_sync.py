@@ -32,13 +32,20 @@ FILE_DATA_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
-    '''Listening for file request messages, only messages, not files!'''
-    file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
-
-    file_name = file_name.decode()
-    #print("file request received for file: ",file_name) #TODO -> should be a log
-    file_path = files_directory.getFilePath(file_name)
-    file_sharing_server(file_path, addr)
+    '''Continuously listens for file request messages.'''
+    while True:
+        try:
+            file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
+            file_name = file_name.decode()
+            print(f"📥 Received file request: {file_name} from {addr}")
+            file_path = files_directory.getFilePath(file_name)
+            threading.Thread(
+                target=file_sharing_server,
+                args=(file_path, addr),
+                daemon=True
+            ).start()
+        except Exception as e:
+            print(f"⚠️ Error in file_request_listener: {e}")
 
 def file_request_server():
     """To download the file"""
@@ -71,20 +78,26 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
     conn_socket.close()
 
 def file_sharing_listener():
-    '''When a file comes in, saves the file automatically'''
     FILE_DATA_SOCKET.listen(20)
     try:
         while True:
             (conn_socket, addr) = FILE_DATA_SOCKET.accept()
-            message = conn_socket.recv(BUFFER_SIZE)
-            message_info = get_file_info(message)
-            file_name = message_info[0]
-            file_size = message_info[1]
-            #print(f'Receiving: {os.path.basename(file_name)} with size = {file_size}\n') #TODO -> should be a log
-            conn_socket.sendall(b'go ahead')
-            upload_file(conn_socket, file_name, file_size)
-    except KeyboardInterrupt as ki:
-        None
+            threading.Thread(
+                target=handle_incoming_file,
+                args=(conn_socket, addr),
+                daemon=True
+            ).start()
+    except KeyboardInterrupt:
+        pass
+
+def handle_incoming_file(conn_socket, addr):
+    try:
+        message = conn_socket.recv(BUFFER_SIZE)
+        file_name, file_size = get_file_info(message)
+        conn_socket.sendall(b'go ahead')
+        upload_file(conn_socket, file_name, file_size)
+    except Exception as e:
+        print(f"⚠️ Error handling file from {addr}: {e}")
        
 def get_file_info(data: bytes) -> (str, int):
     return data[8:].decode(), int.from_bytes(data[:8],byteorder='big')
@@ -92,7 +105,7 @@ def get_file_info(data: bytes) -> (str, int):
 
 def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
-    print(f"---sharing---: filename:{filename}, address:{address} ")
+    print(f"\n---sharing---: filename:{filename}, address:{address} ")
     ip, port = address
     port = FILE_PORT
 
