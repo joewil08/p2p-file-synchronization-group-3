@@ -6,6 +6,8 @@ import utils.get_host_ip as get_host_ip
 import utils.validate_peers as validate_peers
 
 
+
+
 PEER_PORT = 50000
 BUFFER_SIZE = 1024
 PEER_DISCOVERY_MESSAGE = "PEER_DISCOVERY"
@@ -15,23 +17,40 @@ peers_in_network = {}
 trusted_list_of_peers = []
 self_peer = None
 sockt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PEER_PORT)
+sockt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+sockt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)  # <-- This helps on macOS!
 sockt.bind(("", PEER_PORT))
+
+my_peer_id = generate_peer_id.generate_id(None, get_host_ip.my_ip(), PEER_PORT)
 
 
 def listen_for_new_peers():
     global my_peer_id
     global peers_in_network
+
     while True:
         response, addr = sockt.recvfrom(BUFFER_SIZE)
-        peer_id = response.decode()
-        if my_peer_id == peer_id:
-            continue
+        message = response.decode()
+
+        if message.startswith("FILE_REQUEST:"):
+            from file_sync import public_file_names
+            from utils.get_host_ip import my_ip
+
+            file_name = message.split(":", 1)[1]
+            if file_name in public_file_names:
+                print(f"📦 Peer requested '{file_name}' — responding with my IP")
+                sockt.sendto(f"FILE_RESPONSE:{file_name}:{my_ip()}".encode(), addr)
+
         else:
-            if validate_peers.validate_peer(peer_id, get_host_ip.my_ip(), peers_in_network):
-                if peer_id not in peers_in_network:
-                    peers_in_network[peer_id] = addr
-            respond_to_peer(addr)
+            peer_id = message
+            if my_peer_id == peer_id:
+                continue
+            else:
+                if validate_peers.validate_peer(peer_id, get_host_ip.my_ip(), peers_in_network):
+                    if peer_id not in peers_in_network:
+                        peers_in_network[peer_id] = addr
+                respond_to_peer(addr)
+
 
 def is_in_peer_network(id):
     for k,v in peers_in_network.items():

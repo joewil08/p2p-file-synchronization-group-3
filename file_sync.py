@@ -14,6 +14,7 @@ private_file_names = []
 
 # USED TO TRANSFER FILES
 FILE_PORT = 52000
+BUFFER_SIZE = 1024
 
 # These port numbers will be used and run in the background 
 FILE_SYNC_LISTENER = 52100
@@ -31,19 +32,47 @@ FILE_DATA_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
-    '''Listening for file request messages, only messages, not files!'''
-    file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
-    file_name = file_name.decode()
-    #print("file request received for file: ",file_name) #TODO -> should be a log
-    file_path = files_directory.getFilePath(file_name)
-    file_sharing_server(file_path, addr)
+    '''Continuously listens for file request messages.'''
+    while True:
+        try:
+            file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
+            file_name = file_name.decode()            
+            if (addr[0] == get_host_ip.my_ip()):
+                print("Ignore")
+            else:
+                print(f"📥 Received file request: {file_name} from {addr}")
+                file_path = files_directory.getFilePath(file_name)
+                threading.Thread(
+                    target=file_sharing_server,
+                    args=(file_path, addr),
+                    daemon=True
+                ).start()
+        except Exception as e:
+            print(f"⚠️ Error in file_request_listener: {e}")
 
 def file_request_server():
+    """To download the file"""
     address = extract_ip_and_port_for_filerequest(input("Enter user id associated with the file: "))
     file_name = input("Enter file name: ")
     FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
     print(f"File requested: {file_name} from {address}")
     return
+
+def file_request_changes(address, file_name):    
+    current_directory = os.getcwd()
+    all_files_and_dirs = os.listdir(current_directory)
+    files = [f for f in all_files_and_dirs if os.path.isfile(os.path.join(current_directory, f))]
+    for file in files:
+        if file == file_name:
+            address = extract_ip_and_port_for_filerequest(address)
+            FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
+            print(f"----A File was requested---: filename: {file_name} from: {address}")
+            return 
+    
+    # file is not in current directory - other peers are able to download but not edit the file
+    # if you want the file to be edited, make sure it's in current directory
+    return
+
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
     # this method will be used to download the file in the same folder as the program
@@ -61,20 +90,26 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
     conn_socket.close()
 
 def file_sharing_listener():
-    '''When a file comes in, saves the file automatically'''
     FILE_DATA_SOCKET.listen(20)
     try:
         while True:
             (conn_socket, addr) = FILE_DATA_SOCKET.accept()
-            message = conn_socket.recv(BUFFER_SIZE)
-            message_info = get_file_info(message)
-            file_name = message_info[0]
-            file_size = message_info[1]
-            #print(f'Receiving: {os.path.basename(file_name)} with size = {file_size}\n') #TODO -> should be a log
-            conn_socket.sendall(b'go ahead')
-            upload_file(conn_socket, file_name, file_size)
-    except KeyboardInterrupt as ki:
-        None
+            threading.Thread(
+                target=handle_incoming_file,
+                args=(conn_socket, addr),
+                daemon=True
+            ).start()
+    except KeyboardInterrupt:
+        pass
+
+def handle_incoming_file(conn_socket, addr):
+    try:
+        message = conn_socket.recv(BUFFER_SIZE)
+        file_name, file_size = get_file_info(message)
+        conn_socket.sendall(b'go ahead')
+        upload_file(conn_socket, file_name, file_size)
+    except Exception as e:
+        print(f"⚠️ Error handling file from {addr}: {e}")
        
 def get_file_info(data: bytes) -> (str, int):
     return data[8:].decode(), int.from_bytes(data[:8],byteorder='big')
@@ -82,6 +117,7 @@ def get_file_info(data: bytes) -> (str, int):
 
 def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
+    print(f"\n---sharing---: filename:{filename}, address:{address} ")
     ip, port = address
     port = FILE_PORT
 
@@ -154,6 +190,16 @@ def view_public_files():
         return
 
 def handle_file_syncing_listener(data):
+    if data.startswith("FILE_UPDATE:"):
+        try:
+            _, peer_id, file_name, action, timestamp = data.split(":")
+            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            file_request_changes(peer_id, file_name)
+        except Exception as e:
+            print(f"⚠️ Failed to parse update: {e}")
+        return
+
+    # Default behavior for file availability sync
     slash_index = data.find('-')
     user_id = data[:slash_index]
     file_name = data[slash_index+1:]
@@ -188,6 +234,13 @@ def syncing_server():
 def add_new_directory():
     file_dir_name = input("Enter directory path to add to shared directories: ")
     files_directory.setDirPath(file_dir_name)
+    # 📡 Immediately broadcast all files in the new directory
+    user_id = peer.my_peer_id
+    sync_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    for file_name, _ in files_directory.getFileNames().items():
+        data = f"{user_id}-{file_name}"
+        sync_socket.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
 def add_to_private_files_list():
     #TODO [DON'T WORK ON IT UNTIL PROJECT IS COMPLETE]
@@ -207,4 +260,17 @@ def start_file_listeners():
     file_listener_thread.start()
     file_sharing_listener_thread = threading.Thread(target=file_sharing_listener, daemon=True)
     file_sharing_listener_thread.start()
+    file_change_watcher_thread = threading.Thread(target=file_change_watcher, daemon=True)
+    file_change_watcher_thread.start()
+def file_change_watcher():
+    """Watches shared directory and notifies peers of file changes."""
+    watcher_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    watcher_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
+    while True:
+        changes = files_directory.detect_file_changes()
+        for action, file_name in changes:
+            message = f"FILE_UPDATE:{peer.my_peer_id}:{file_name}:{action}:{time.time()}"
+            watcher_socket.sendto(message.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
+            print(f"📢 Broadcasted: {file_name} was {action}")
+        time.sleep(5)
