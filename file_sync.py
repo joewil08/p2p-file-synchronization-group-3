@@ -38,9 +38,9 @@ def file_request_listener():
             file_info, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
             request = file_info.decode()
 
-            if addr[0] == get_host_ip.my_ip():
-                print("🔄 Ignoring self-sent request.")
-                continue
+            # if addr[0] == get_host_ip.my_ip():
+            #     print("🔄 Ignoring self-sent request.")
+            #     continue
 
             if "::" not in request:
                 print(f"❌ Malformed request received: {request}")
@@ -140,7 +140,7 @@ def get_file_info(data: bytes) -> (str, int):
 
 def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
-    print(f"\n---sharing---: filename:{filename}, address:{address} ")
+    #print(f"\n---sharing---: filename:{filename}, address:{address} ")
     ip, port = address
     port = FILE_PORT
 
@@ -203,11 +203,7 @@ def extract_ip_and_port_for_filerequest(peer_id):
 
 def view_public_files():
     """Displays all available public and private files."""
-    for user_id, files in public_file_names_available.items():
-        print(f"\nFiles from {user_id}:")
-        for file in files:
-            print(f" - {file}")  # Private files are already marked
-
+    print(public_file_names_available)
     print("\nType 1 to download a file")
     print("Type 2 to go back to the menu")
 
@@ -239,7 +235,7 @@ def handle_file_syncing_listener(data):
 
     # for private files so peers knows that it is private
     if file_type == "private":
-        file_name = f"[Private] {file_name}" 
+        file_name = f"[PRIVATE] {file_name}" 
 
     if file_name not in public_file_names_available[user_id]:
         public_file_names_available[user_id].append(file_name)
@@ -273,16 +269,19 @@ def syncing_server():
 
             # Private files (Only send to authorized peers)
             for file_name in files_directory.getPrivateFileNames():
-                for peer_ip in TRUSTED_LIST_OF_PEERS:
-                    data = f"{user_id}-private-{file_name}"
-                    file_syncing_server.sendto(data.encode(), (peer_ip, FILE_SYNC_LISTENER))
+                # for peer_ip in TRUSTED_LIST_OF_PEERS:
+                #     data = f"{user_id}-private-{file_name}"
+                #     file_syncing_server.sendto(data.encode(), (peer_ip, FILE_SYNC_LISTENER))
+
+                data = f"{user_id}-private-{file_name}"
+                file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
 
 
 def add_new_directory():
     file_dir_name = input("Enter directory path to add to shared directories: ")
     files_directory.setDirPath(file_dir_name)
-    # 📡 Immediately broadcast all files in the new directory
+    # Immediately broadcast all files in the new directory
     user_id = peer.my_peer_id
     sync_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

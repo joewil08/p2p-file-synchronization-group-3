@@ -107,5 +107,5 @@ def setPrivateFileNames(directory):
     global private_files
     global private_dir_path 
     if private_dir_path:
-        files = {f.name: getLastModifiedDate(f) for f in Path(directory).iterdir() if f.is_file()}
-        return files
+        private_files = {f.name: getLastModifiedDate(f) for f in Path(directory).iterdir() if f.is_file()}
+        return private_files

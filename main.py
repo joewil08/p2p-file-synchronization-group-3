@@ -1,7 +1,7 @@
 import peer
 import threading
 from peer import view_peers_in_network
-from file_sync import view_public_files, add_new_directory, start_file_listeners
+from file_sync import view_public_files, add_new_directory, start_file_listeners, add_new_private_directory
 from message import display_messages, reply_to_message, broadcast_message
 from peer import is_registered, remove_from_trusted_peer_list, add_to_trusted_peer_list
 import message
@@ -15,14 +15,15 @@ def file_submenu():
     stay_in_file_submenu = True
     while stay_in_file_submenu:
         print("\nPress 1 to view all files available on the network")
-        print("Press 3 to add a directory for sharing")
-        print("Press 4 to request a file")
+        print("Press 2 to add a public directory for sharing")
+        print("Press 3 to add a private directory for sharing with trusted peers")
         print("Press 0 to go back to main menu")
+        option = int(input("Select an option: "))
         match option:
             case 0: stay_in_file_submenu = False
             case 1: view_public_files()
-            case 3: add_new_directory()
-            case 4: view_public_files() # gaves option to download
+            case 2: add_new_directory()
+            case 3: add_new_private_directory()
 
 def message_submenu():
     stay_in_file_submenu = True
