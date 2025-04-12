@@ -7,6 +7,8 @@ from pathlib import Path
 files = {}
 dir_path = None
 
+private_files = {}
+private_dir_path = None
 
 def getLastModifiedDate(file_path):
     modified_time = os.path.getmtime(file_path)
@@ -76,3 +78,34 @@ def detect_file_changes():
 
     files = updated_files
     return changes
+
+"""For private file sharing"""
+def setPrivateDirPath(new_path):
+    global private_dir_path
+    string_path = new_path[1:-1]
+    if os.path.exists(new_path) and os.path.isdir(new_path):
+        private_dir_path = new_path
+        print(f"Added {new_path} to shared directories.")
+        setPrivateFileNames(private_dir_path)
+    elif os.path.exists(string_path) and os.path.isdir(string_path):
+        private_dir_path = string_path
+        print(f"Added {new_path} to shared directories.")
+        setPrivateFileNames(private_dir_path)
+    else:
+        print("Invalid directory path")
+
+def getPrivateFilePath(file_name):
+    global private_dir_path
+    file_path = f"{private_dir_path}/{file_name}"
+    return file_path 
+
+def getPrivateFileNames():
+    global private_files
+    return private_files
+
+def setPrivateFileNames(directory):
+    global private_files
+    global private_dir_path 
+    if private_dir_path:
+        private_files = {f.name: getLastModifiedDate(f) for f in Path(directory).iterdir() if f.is_file()}
+        return private_files

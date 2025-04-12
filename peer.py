@@ -105,14 +105,18 @@ def find_peers():
     return peers_in_network
 
 def add_to_trusted_peer_list():
+    global trusted_list_of_peers
     peer_id = input("Enter id to add to list of peers: ")
-    #TODO
-    pass
+    trusted_list_of_peers.append(peer_id)
 
 def remove_from_trusted_peer_list():
     peer_id = input("Enter id to remove to list of peers: ")
-    #TODO
-    pass
+    global trusted_list_of_peers
+    trusted_list_of_peers.remove(peer_id)
+
+def get_trusted_peers():
+    global trusted_list_of_peers
+    return trusted_list_of_peers
 
 def view_trusted_peers_list():
     print(trusted_list_of_peers)
