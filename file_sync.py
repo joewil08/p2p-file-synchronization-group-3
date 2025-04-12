@@ -10,7 +10,7 @@ import sys
 
 
 public_file_names_available = {}
-private_file_names = []
+TRUSTED_LIST_OF_PEERS = peer.get_trusted_peers()
 
 # USED TO TRANSFER FILES
 FILE_PORT = 52000
@@ -32,31 +32,54 @@ FILE_DATA_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 def file_request_listener():
-    '''Continuously listens for file request messages.'''
+    """Continuously listens for file request messages."""
     while True:
         try:
-            file_name, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
-            file_name = file_name.decode()            
-            if (addr[0] == get_host_ip.my_ip()):
-                print("Ignore")
+            file_info, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
+            request = file_info.decode()
+
+            if addr[0] == get_host_ip.my_ip():
+                print("🔄 Ignoring self-sent request.")
+                continue
+
+            if "::" not in request:
+                print(f"❌ Malformed request received: {request}")
+                continue
+
+            request_type, file_name = request.split("::")
+            print(f"📥 Received {request_type} file request: {file_name} from {addr}")
+
+            if request_type == "private":
+                if addr[0] not in TRUSTED_LIST_OF_PEERS:
+                    print(f"⛔ Unauthorized access attempt from {addr}")
+                    continue
+                file_path = files_directory.getPrivateFilePath(file_name)
             else:
-                print(f"📥 Received file request: {file_name} from {addr}")
                 file_path = files_directory.getFilePath(file_name)
+
+            if file_path:
                 threading.Thread(
                     target=file_sharing_server,
                     args=(file_path, addr),
                     daemon=True
                 ).start()
+            else:
+                print(f"📄 File not found: {file_name}")
+
         except Exception as e:
             print(f"⚠️ Error in file_request_listener: {e}")
 
 def file_request_server():
-    """To download the file"""
-    address = extract_ip_and_port_for_filerequest(input("Enter user id associated with the file: "))
+    """Requests a file from another peer."""
+    address = extract_ip_and_port_for_filerequest(input("Enter user ID of the file owner: "))
     file_name = input("Enter file name: ")
-    FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-    print(f"File requested: {file_name} from {address}")
-    return
+    is_private = input("Is this a private file? (yes/no): ").strip().lower()
+
+    request_type = "private" if is_private == "yes" else "public"
+    message = f"{request_type}::{file_name}"
+    FILE_REQUEST_SOCKET.sendto(message.encode(), address)
+
+    print(f"📤 Requested {file_name} ({request_type}) from {address}")
 
 def file_request_changes(address, file_name):    
     current_directory = os.getcwd()
@@ -179,12 +202,17 @@ def extract_ip_and_port_for_filerequest(peer_id):
     return address
 
 def view_public_files():
-    '''this method will be used to get the peer ids & file name of all the public files available to download on the network'''
-    print(public_file_names_available)
-    print("Type 1 to download a file")
-    print("Type 2 to go back to menu")
-    option = int(input("select an option: "))
-    if option == 1:
+    """Displays all available public and private files."""
+    for user_id, files in public_file_names_available.items():
+        print(f"\nFiles from {user_id}:")
+        for file in files:
+            print(f" - {file}")  # Private files are already marked
+
+    print("\nType 1 to download a file")
+    print("Type 2 to go back to the menu")
+
+    option = input("Select an option: ").strip()
+    if option == "1":
         file_request_server()
     else:
         return
@@ -200,11 +228,19 @@ def handle_file_syncing_listener(data):
         return
 
     # Default behavior for file availability sync
-    slash_index = data.find('-')
-    user_id = data[:slash_index]
-    file_name = data[slash_index+1:]
+    parts = data.split('-')
+    if len(parts) < 3:
+        return
+
+    user_id, file_type, file_name = parts[0], parts[1], '-'.join(parts[2:])
+
     if user_id not in public_file_names_available:
         public_file_names_available[user_id] = []
+
+    # for private files so peers knows that it is private
+    if file_type == "private":
+        file_name = f"[Private] {file_name}" 
+
     if file_name not in public_file_names_available[user_id]:
         public_file_names_available[user_id].append(file_name)
 
@@ -217,18 +253,30 @@ def syncing_listener():
         handle_file_syncing_listener(response.decode())
 
 def syncing_server():
-    '''broadcast files names in directory to users in the network'''
+    """Broadcast available files to the network."""
     file_syncing_server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     file_syncing_server.bind(("", FILE_SYNC_SERVER))
-    current_time  = time.time()
-    user_id = peer.my_peer_id
+
     file_syncing_server.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    user_id = peer.my_peer_id
+    current_time = time.time()
+
     while True:
         if time.time() - current_time > 10:
             current_time = time.time()
-            for file_name, modified_date in files_directory.getFileNames().items():
-                data = f"{user_id}-{file_name}"
+
+            # Public files
+            for file_name in files_directory.getFileNames():
+                data = f"{user_id}-public-{file_name}"
                 file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
+
+            # Private files (Only send to authorized peers)
+            for file_name in files_directory.getPrivateFileNames():
+                for peer_ip in TRUSTED_LIST_OF_PEERS:
+                    data = f"{user_id}-private-{file_name}"
+                    file_syncing_server.sendto(data.encode(), (peer_ip, FILE_SYNC_LISTENER))
+
 
 
 def add_new_directory():
@@ -242,14 +290,9 @@ def add_new_directory():
         data = f"{user_id}-{file_name}"
         sync_socket.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
-def add_to_private_files_list():
-    #TODO [DON'T WORK ON IT UNTIL PROJECT IS COMPLETE]
-    pass
-
-def view_private_files():
-    '''this method will be used to get the id of all the private files available to download on the network'''
-    #TODO [DON'T WORK ON IT UNTIL PROJECT IS COMPLETE]
-    pass
+def add_new_private_directory():
+    file_dir_name = input("Enter path for private directory: ")
+    files_directory.setPrivateDirPath(file_dir_name)
 
 def start_file_listeners():
     syncing_thread = threading.Thread(target=syncing_server, daemon=True)
