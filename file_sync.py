@@ -32,6 +32,8 @@ FILE_REQUEST_SOCKET.bind(("", FILE_REQUESTS_PORT))
 FILE_DATA_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
+NOT_EXIST = "not exist"
+
 def file_request_listener():
     """Continuously listens for file request messages."""
     while True:
@@ -44,19 +46,32 @@ def file_request_listener():
             #     continue
 
             if "::" not in request:
-                print(f"❌ Malformed request received: {request}")
+                print(f"❌ Malformed request received: {request}") #TODO -> remove print statement and add to log
                 continue
 
             request_type, file_name = request.split("::")
-            print(f"📥 Received {request_type} file request: {file_name} from {addr}")
-
+            print(f"📥 Received {request_type} file request: {file_name} from {addr}") #TODO -> remove print statement and add to log
+            print(addr[0], TRUSTED_LIST_OF_PEERS)
             if request_type == "private":
                 if addr[0] not in TRUSTED_LIST_OF_PEERS:
-                    print(f"⛔ Unauthorized access attempt from {addr}")
+                    print(f"⛔ Unauthorized access attempt from {addr}")  #TODO -> remove print statement and add to log
+                    # TODO -> needs to send a message to the user saying that the user is not authorized
+                    threading.Thread(
+                        target=file_sharing_server,
+                        args=(NOT_EXIST, addr),
+                        daemon=True
+                    ).start()
                     continue
                 file_path = files_directory.getPrivateFilePath(file_name)
             else:
                 file_path = files_directory.getFilePath(file_name)
+                if not os.path.exists(file_name):
+                    threading.Thread(
+                        target=file_sharing_server,
+                        args=(NOT_EXIST, addr),
+                        daemon=True
+                    ).start()
+                    continue   
 
             if file_path:
                 threading.Thread(
@@ -65,7 +80,7 @@ def file_request_listener():
                     daemon=True
                 ).start()
             else:
-                print(f"📄 File not found: {file_name}")
+                print(f"📄 File not found: {file_name}")  #TODO -> remove print statement and add to log
 
         except Exception as e:
             print(f"⚠️ Error in file_request_listener: {e}")
@@ -90,7 +105,7 @@ def file_request_changes(address, file_name):
         if file == file_name:
             address = extract_ip_and_port_for_filerequest(address)
             FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-            print(f"----A File was requested---: filename: {file_name} from: {address}")
+            #print(f"----A File was requested---: filename: {file_name} from: {address}") #TODO -> remove print statement and add to log
             return 
     
     # file is not in current directory - other peers are able to download but not edit the file
@@ -139,6 +154,9 @@ def file_sharing_listener():
 def handle_incoming_file(conn_socket, addr):
     try:
         message = conn_socket.recv(BUFFER_SIZE)
+        if message.decode() == NOT_EXIST:
+            print(f"⚠️ Unable to download a file from {addr}") # KEEP THIS AS A LOG
+            return
         file_name, file_size = get_file_info(message)
         conn_socket.sendall(b'go ahead')
         upload_file(conn_socket, file_name, file_size)
@@ -153,10 +171,13 @@ def file_sharing_server(filename, address):
     """Send a requested file to a peer over a TCP connection."""    
     #print(f"\n---sharing---: filename:{filename}, address:{address} ")
     ip, port = address
-    port = FILE_PORT
+    port = FILE_PORT    
 
-    if not os.path.exists(filename):
-        print(f"Error: File {filename} does not exist")
+    if not os.path.exists(filename) or filename == NOT_EXIST:
+        print(f"Error: File {filename} does not exist")  #TODO -> remove print statement and add to log (user tried to access a file that does not exist)
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((ip, port))
+        client_socket.sendall(NOT_EXIST.encode())
         return
 
     file_info = get_file_size(filename).to_bytes(8, byteorder='big') + filename.encode('utf-8')
