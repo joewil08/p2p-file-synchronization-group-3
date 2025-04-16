@@ -41,9 +41,9 @@ def file_request_listener():
             file_info, addr = FILE_REQUEST_SOCKET.recvfrom(BUFFER_SIZE)
             request = file_info.decode()
 
-            # if addr[0] == get_host_ip.my_ip():
-            #     print("🔄 Ignoring self-sent request.")
-            #     continue
+            if addr[0] == get_host_ip.my_ip():
+                print("🔄 Ignoring self-sent request.")
+                continue
 
             if "::" not in request:
                 print(f"❌ Malformed request received: {request}") #TODO -> remove print statement and add to log
@@ -51,11 +51,10 @@ def file_request_listener():
 
             request_type, file_name = request.split("::")
             print(f"📥 Received {request_type} file request: {file_name} from {addr}") #TODO -> remove print statement and add to log
-            print(addr[0], TRUSTED_LIST_OF_PEERS)
             if request_type == "private":
-                if addr[0] not in TRUSTED_LIST_OF_PEERS:
+                # Verifies if peer in trust list of peers before sharing private files
+                if addr[0] not in TRUSTED_LIST_OF_PEERS and str(addr[0]) not in TRUSTED_LIST_OF_PEERS:
                     print(f"⛔ Unauthorized access attempt from {addr}")  #TODO -> remove print statement and add to log
-                    # TODO -> needs to send a message to the user saying that the user is not authorized
                     threading.Thread(
                         target=file_sharing_server,
                         args=(NOT_EXIST, addr),
@@ -64,14 +63,18 @@ def file_request_listener():
                     continue
                 file_path = files_directory.getPrivateFilePath(file_name)
             else:
+                print(" -- it's a public file -- ")
                 file_path = files_directory.getFilePath(file_name)
-                if not os.path.exists(file_name):
+                print("public file path: ", file_path)
+                if not os.path.exists(file_path):
+                    print("public file path does NOT exist")
                     threading.Thread(
                         target=file_sharing_server,
                         args=(NOT_EXIST, addr),
                         daemon=True
                     ).start()
                     continue   
+                print("public file path DOES  exist")
 
             if file_path:
                 threading.Thread(
@@ -89,6 +92,8 @@ def file_request_server():
     """Requests a file from another peer."""
     address = extract_ip_and_port_for_filerequest(input("Enter user ID of the file owner: "))
     file_name = input("Enter file name: ")
+    if file_name[0] == "'" or file_name[0] == '"':
+        file_name = file_name[1:-1]
     is_private = input("Is this a private file? (yes/no): ").strip().lower()
 
     request_type = "private" if is_private == "yes" else "public"
@@ -174,7 +179,7 @@ def file_sharing_server(filename, address):
     port = FILE_PORT    
 
     if not os.path.exists(filename) or filename == NOT_EXIST:
-        print(f"Error: File {filename} does not exist")  #TODO -> remove print statement and add to log (user tried to access a file that does not exist)
+        #print(f"Error: File {filename} does not exist")  #TODO -> remove print statement and add to log (user tried to access a file that does not exist)
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((ip, port))
         client_socket.sendall(NOT_EXIST.encode())
@@ -303,12 +308,8 @@ def syncing_server():
                 data = f"{user_id}-public-{file_name}"
                 file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
-            # Private files (Only send to authorized peers)
+            # Private files 
             for file_name in files_directory.getPrivateFileNames():
-                # for peer_ip in TRUSTED_LIST_OF_PEERS:
-                #     data = f"{user_id}-private-{file_name}"
-                #     file_syncing_server.sendto(data.encode(), (peer_ip, FILE_SYNC_LISTENER))
-
                 data = f"{user_id}-private-{file_name}"
                 file_syncing_server.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
 
@@ -328,7 +329,14 @@ def add_new_directory():
 def add_new_private_directory():
     file_dir_name = input("Enter path for private directory: ")
     files_directory.setPrivateDirPath(file_dir_name)
-
+    # Immediately broadcast all the private files in the new directory
+    user_id = peer.my_peer_id
+    sync_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    for file_name, _ in files_directory.getPrivateFileNames().items():
+        data = f"{user_id}-{file_name}"
+        sync_socket.sendto(data.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
+        
 def start_file_listeners():
     syncing_thread = threading.Thread(target=syncing_server, daemon=True)
     syncing_thread.start()
@@ -340,6 +348,7 @@ def start_file_listeners():
     file_sharing_listener_thread.start()
     file_change_watcher_thread = threading.Thread(target=file_change_watcher, daemon=True)
     file_change_watcher_thread.start()
+
 def file_change_watcher():
     """Watches shared directory and notifies peers of file changes."""
     watcher_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
