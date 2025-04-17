@@ -38,6 +38,7 @@ def subscription_listener():
     while True:
         try:
             data, addr = subscription_socket.recvfrom(BUFFER_SIZE)
+            print(addr)
             message = data.decode()
 
             # Ignore messages from self
@@ -195,39 +196,36 @@ def discover_shareable_folders():
     """Discover folders available for subscription"""
     request_msg = f"{SUBSCRIPTION_LIST}::request"
     subscription_socket.sendto(request_msg.encode(), ("<broadcast>", SUBSCRIPTION_PORT))
-    print("🔍 Looking for shareable folders...")
 
-    # Wait for responses
-    print("Waiting for responses...")
-    time.sleep(3)  # Give peers time to respond
+    subscription_socket.settimeout(1)
+    start_time = time.time()
+    responses = set()
 
-    # Parse responses
-    while True:
+    print("\n=== Available Folders ===")
+
+    while time.time() - start_time < 3:
         try:
-            subscription_socket.settimeout(1)
             data, addr = subscription_socket.recvfrom(BUFFER_SIZE)
             message = data.decode()
 
-            if message.startswith(f"{SUBSCRIPTION_LIST}::"):
+            if message.startswith(f"{SUBSCRIPTION_LIST}::") and addr[0] not in responses:
+                responses.add(addr[0])
                 folder_data = message.split("::")[1]
                 if folder_data:
-                    print("\n=== Available Folders ===")
                     for folder_info in folder_data.split(","):
                         if ":" in folder_info:
                             folder_id, folder_name = folder_info.split(":", 1)
                             print(f"- {folder_name} (ID: {folder_id})")
-                    print("=======================\n")
-                else:
-                    print("No shared folders found")
-                break
-
         except socket.timeout:
-            print("No more responses")
-            break
+            continue
         except Exception as e:
             print(f"Error processing response: {e}")
             break
 
+    if not responses:
+        print("No shared folders found")
+
+    print("=======================\n")
     subscription_socket.settimeout(None)
 
 
