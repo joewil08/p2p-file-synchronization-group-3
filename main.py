@@ -41,10 +41,11 @@ def message_submenu():
             case 3: broadcast_message()
             
 def manage_list_of_trusted_peers():
-    stay_in_file_submenu = False
+    stay_in_file_submenu = True
     while stay_in_file_submenu:
         print("\nPress 1 to add user to trusted list of peers ")
         print("Press 2 to remove a user from trusted list of peers")
+        print("Press 3 to view trusted peers list")
         print("Press 0 to go back to main menu")
 
         option = int(input("Select an option: "))
@@ -53,6 +54,7 @@ def manage_list_of_trusted_peers():
             case 0: stay_in_file_submenu = False
             case 1: add_to_trusted_peer_list()
             case 2: remove_from_trusted_peer_list()
+            case 3: peer.view_trusted_peers_list()
 
 def show_main_menu():
     print("\nPress 1 to discover peers") # this will be switched later to be invoked automatically

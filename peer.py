@@ -104,10 +104,23 @@ def find_peers():
     print(f"Process completed. Found a total of {len(peers_in_network)} peers.")
     return peers_in_network
 
+def get_ip_from_peer(peer_id):
+    """
+    Splits the peer_id into its components: name, IP address, and port.
+    """
+    try:
+        name, ip, port = peer_id.split("_")
+        return ip
+    except None:
+        return None
+
 def add_to_trusted_peer_list():
     global trusted_list_of_peers
     peer_id = input("Enter id to add to list of peers: ")
     trusted_list_of_peers.append(peer_id)
+    ip = get_ip_from_peer(peer_id)
+    trusted_list_of_peers.append(ip)
+
 
 def remove_from_trusted_peer_list():
     peer_id = input("Enter id to remove to list of peers: ")
@@ -119,7 +132,19 @@ def get_trusted_peers():
     return trusted_list_of_peers
 
 def view_trusted_peers_list():
-    print(trusted_list_of_peers)
+    print("[", end="")
+    first = True
+    for peer in trusted_list_of_peers:
+            if(peer.count('_')) == 2:
+                name, ip, port = peer.split("_")
+                if name and ip and port:
+                    if not first:
+                        print(", ", end="")
+                    print(peer, end="")
+                    first = False
+    print("]")
+
+
 
 def view_peers_in_network():
     global self_peer
