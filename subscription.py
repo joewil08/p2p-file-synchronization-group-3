@@ -38,7 +38,6 @@ def subscription_listener():
     while True:
         try:
             data, addr = subscription_socket.recvfrom(BUFFER_SIZE)
-            print(addr)
             message = data.decode()
 
             # Ignore messages from self

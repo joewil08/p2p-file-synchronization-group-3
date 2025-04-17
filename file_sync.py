@@ -109,12 +109,13 @@ def file_request_changes(address, file_name):
     for file in files:
         if file == file_name:
             address = extract_ip_and_port_for_filerequest(address)
+
+            if not file_name.contains("::"):
+                print("FILE WAS MISSING '::' IN THE NAME")
+                file_name = f"public::{file_name}"
+
             FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
-            #print(f"----A File was requested---: filename: {file_name} from: {address}") #TODO -> remove print statement and add to log
             return 
-    
-    # file is not in current directory - other peers are able to download but not edit the file
-    # if you want the file to be edited, make sure it's in current directory
     return
 
 
