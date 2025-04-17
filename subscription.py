@@ -30,7 +30,7 @@ def generate_folder_id(path):
 def start_subscription_service():
     """Start all subscription-related threads"""
     threading.Thread(target=subscription_listener, daemon=True).start()
-    print("📂 Subscription service started")
+    print("📂 Subscription service started") #TODO -> move to log
 
 
 def subscription_listener():
@@ -88,7 +88,7 @@ def handle_subscription_request(parts, addr):
         requester_ip = peer.get_ip_from_peer(requester_id)
         if requester_ip:
             subscription_socket.sendto(accept_msg.encode(), (requester_ip, SUBSCRIPTION_PORT))
-            print(f"✅ Subscription accepted for {requester_id} to {folder_id}")
+            print(f"✅ Subscription accepted for {requester_id} to {folder_id}") #TODO -> move to log
 
 
 def handle_subscription_accept(parts):

@@ -63,18 +63,15 @@ def file_request_listener():
                     continue
                 file_path = files_directory.getPrivateFilePath(file_name)
             else:
-                print(" -- it's a public file -- ")
                 file_path = files_directory.getFilePath(file_name)
-                print("public file path: ", file_path)
+                #print("public file path: ", file_path)
                 if not os.path.exists(file_path):
-                    print("public file path does NOT exist")
                     threading.Thread(
                         target=file_sharing_server,
                         args=(NOT_EXIST, addr),
                         daemon=True
                     ).start()
                     continue   
-                print("public file path DOES  exist")
 
             if file_path:
                 threading.Thread(
@@ -110,8 +107,8 @@ def file_request_changes(address, file_name):
         if file == file_name:
             address = extract_ip_and_port_for_filerequest(address)
 
-            if not file_name.contains("::"):
-                print("FILE WAS MISSING '::' IN THE NAME")
+            if "::" not in file_name:
+                #print("FILE WAS MISSING '::' IN THE NAME")
                 file_name = f"public::{file_name}"
 
             FILE_REQUEST_SOCKET.sendto(file_name.encode(), address)
@@ -259,10 +256,10 @@ def handle_file_syncing_listener(data):
     if data.startswith("FILE_UPDATE:"):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
-            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'") #TODO -> move to log
             file_request_changes(peer_id, file_name)
         except Exception as e:
-            print(f"⚠️ Failed to parse update: {e}")
+            print(f"⚠️ Failed to parse update: {e}") #TODO -> move to log
         return
 
     # Default behavior for file availability sync
