@@ -152,6 +152,9 @@ def handle_subscription_list(parts, addr):
 
 def share_folder(path):
     """Share a folder for subscription"""
+    if path[0] == "'" or path[-1] == '"':
+        path = path[1:-1]
+
     if not os.path.exists(path) or not os.path.isdir(path):
         print(f"❌ Directory {path} does not exist")
         return False
@@ -210,13 +213,18 @@ def discover_shareable_folders():
     while time.time() - start_time < 3:
         try:
             data, addr = temp_socket.recvfrom(BUFFER_SIZE)
-            print(addr)
+            print("peer's address: ", addr)
+            print("responses: ", responses)
+            print("Message: ", data.decode())
+
             message = data.decode()
 
             if message.startswith(f"{SUBSCRIPTION_LIST}::") and addr[0] not in responses:
+                print("---MESSAGE started with SUBSCRIPTION_LIST---")
                 responses.add(addr[0])
                 folder_data = message.split("::")[1]
                 if folder_data:
+                    print("---FOLDER IS NOT EMPTY---")
                     for folder_info in folder_data.split(","):
                         if ":" in folder_info:
                             folder_id, folder_name = folder_info.split(":", 1)
