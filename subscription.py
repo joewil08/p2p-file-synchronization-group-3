@@ -144,7 +144,7 @@ def handle_subscription_list(parts, addr):
 
     for folder_id, folder_info in my_shared_folders.items():
         folder_name = os.path.basename(folder_info["path"])
-        folder_data.append(f"{folder_id}:{folder_name}")
+        folder_data.append(f"{folder_id}")
 
     response += ",".join(folder_data)
     subscription_socket.sendto(response.encode(), addr)
@@ -213,22 +213,21 @@ def discover_shareable_folders():
     while time.time() - start_time < 3:
         try:
             data, addr = temp_socket.recvfrom(BUFFER_SIZE)
-            print("peer's address: ", addr)
-            print("responses: ", responses)
-            print("Message: ", data.decode())
+            # print("peer's address: ", addr)
+            # print("responses: ", responses)
+            # print("Message: ", data.decode())
 
             message = data.decode()
 
             if message.startswith(f"{SUBSCRIPTION_LIST}::") and addr[0] not in responses:
-                print("---MESSAGE started with SUBSCRIPTION_LIST---")
                 responses.add(addr[0])
                 folder_data = message.split("::")[1]
                 if folder_data:
-                    print("---FOLDER IS NOT EMPTY---")
+                    #print("FOLDER DATA: ", folder_data)
                     for folder_info in folder_data.split(","):
                         if ":" in folder_info:
                             folder_id, folder_name = folder_info.split(":", 1)
-                            print(f"- {folder_name} (ID: {folder_id})")
+                            print(f"- {folder_name} (ID: {folder_id}:{folder_name})")
         except socket.timeout:
             continue
         except Exception as e:
