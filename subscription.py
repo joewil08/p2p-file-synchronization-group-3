@@ -193,11 +193,15 @@ def subscribe_to_folder(folder_id):
 
 
 def discover_shareable_folders():
-    """Discover folders available for subscription"""
-    request_msg = f"{SUBSCRIPTION_LIST}::request"
-    subscription_socket.sendto(request_msg.encode(), ("<broadcast>", SUBSCRIPTION_PORT))
+    """Discover folders available for subscription using a separate socket"""
+    temp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    temp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    temp_socket.bind(("", 0))  # Bind to any available port
+    temp_socket.settimeout(1)
 
-    subscription_socket.settimeout(1)
+    request_msg = f"{SUBSCRIPTION_LIST}::request"
+    temp_socket.sendto(request_msg.encode(), ("<broadcast>", SUBSCRIPTION_PORT))
+
     start_time = time.time()
     responses = set()
 
@@ -205,7 +209,8 @@ def discover_shareable_folders():
 
     while time.time() - start_time < 3:
         try:
-            data, addr = subscription_socket.recvfrom(BUFFER_SIZE)
+            data, addr = temp_socket.recvfrom(BUFFER_SIZE)
+            print(addr)
             message = data.decode()
 
             if message.startswith(f"{SUBSCRIPTION_LIST}::") and addr[0] not in responses:
@@ -226,8 +231,7 @@ def discover_shareable_folders():
         print("No shared folders found")
 
     print("=======================\n")
-    subscription_socket.settimeout(None)
-
+    temp_socket.close()
 
 def list_my_subscriptions():
     """List all current subscriptions"""
