@@ -21,7 +21,6 @@ BUFFER_SIZE = 1024
 FILE_SYNC_LISTENER = 52100
 FILE_SYNC_SERVER = 52200
 FILE_REQUESTS_PORT = 52300
-
 BUFFER_SIZE = 1024
 
 #for sharing messages before file transfer
@@ -34,6 +33,20 @@ FILE_DATA_SOCKET.bind((get_host_ip.my_ip(), FILE_PORT))
 
 NOT_EXIST = "not exist"
 
+log_buffer = []
+
+def log(msg):
+    log_buffer.append(msg)
+
+def view_activity_log():
+    if not log_buffer:
+        print("\n📝 No activity logs to show yet.\n")
+    else:
+        print("\n=== Activity Log ===")
+        for line in log_buffer:
+            print(line)
+        print("====================\n")
+
 def file_request_listener():
     """Continuously listens for file request messages."""
     while True:
@@ -42,19 +55,22 @@ def file_request_listener():
             request = file_info.decode()
 
             if addr[0] == get_host_ip.my_ip():
-                print("🔄 Ignoring self-sent request.")
+                log("🔄 Ignoring self-sent request.")
+                # print("🔄 Ignoring self-sent request.")
                 continue
 
             if "::" not in request:
-                print(f"❌ Malformed request received: {request}") #TODO -> remove print statement and add to log
+                log(f"❌ Malformed request received: {request}")
+                # print(f"❌ Malformed request received: {request}")
                 continue
 
             request_type, file_name = request.split("::")
-            print(f"📥 Received {request_type} file request: {file_name} from {addr}") #TODO -> remove print statement and add to log
+            log(f"📥 Received {request_type} file request: {file_name} from {addr}")
+            # print(f"📥 Received {request_type} file request: {file_name} from {addr}")
             if request_type == "private":
-                # Verifies if peer in trust list of peers before sharing private files
                 if addr[0] not in TRUSTED_LIST_OF_PEERS and str(addr[0]) not in TRUSTED_LIST_OF_PEERS:
-                    print(f"⛔ Unauthorized access attempt from {addr}")  #TODO -> remove print statement and add to log
+                    log(f"⛔ Unauthorized access attempt from {addr}")
+                    # print(f"⛔ Unauthorized access attempt from {addr}")
                     threading.Thread(
                         target=file_sharing_server,
                         args=(NOT_EXIST, addr),
@@ -63,18 +79,22 @@ def file_request_listener():
                     continue
                 file_path = files_directory.getPrivateFilePath(file_name)
             else:
-                print(" -- it's a public file -- ")
+                log(" -- it's a public file -- ")
+                # print(" -- it's a public file -- ")
                 file_path = files_directory.getFilePath(file_name)
-                print("public file path: ", file_path)
+                log("public file path: " + file_path)
+                # print("public file path: ", file_path)
                 if not os.path.exists(file_path):
-                    print("public file path does NOT exist")
+                    log("public file path does NOT exist")
+                    # print("public file path does NOT exist")
                     threading.Thread(
                         target=file_sharing_server,
                         args=(NOT_EXIST, addr),
                         daemon=True
                     ).start()
                     continue   
-                print("public file path DOES  exist")
+                log("public file path DOES  exist")
+                # print("public file path DOES  exist")
 
             if file_path:
                 threading.Thread(
@@ -83,7 +103,8 @@ def file_request_listener():
                     daemon=True
                 ).start()
             else:
-                print(f"📄 File not found: {file_name}")  #TODO -> remove print statement and add to log
+                log(f"📄 File not found: {file_name}")
+                # print(f"📄 File not found: {file_name}")
 
         except Exception as e:
             print(f"⚠️ Error in file_request_listener: {e}")
@@ -119,7 +140,6 @@ def file_request_changes(address, file_name):
 
 
 def upload_file(conn_socket: socket, file_name: str, file_size: int):
-    # this method will be used to download the file in the same folder as the program
     file_hash = hashlib.sha256()
     file_name = os.path.basename(file_name)
     with open(file_name, 'wb') as file:
@@ -136,13 +156,14 @@ def upload_file(conn_socket: socket, file_name: str, file_size: int):
 
     received_hash = conn_socket.recv(32)
     if received_hash == file_hash.digest():
-        print(f"File {file_name} received successfully with valid integrity")
+        log(f"File {file_name} received successfully with valid integrity")
+        # print(f"File {file_name} received successfully with valid integrity")
     else:
-        print(f"Warning: Hash mismatch for file {file_name}")
+        log(f"Warning: Hash mismatch for file {file_name}")
+        # print(f"Warning: Hash mismatch for file {file_name}")
         os.remove(file_name)
 
     conn_socket.close()
-
 def file_sharing_listener():
     FILE_DATA_SOCKET.listen(20)
     try:
@@ -258,13 +279,13 @@ def handle_file_syncing_listener(data):
     if data.startswith("FILE_UPDATE:"):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
-            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            log(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
+            # print(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
             file_request_changes(peer_id, file_name)
         except Exception as e:
             print(f"⚠️ Failed to parse update: {e}")
         return
 
-    # Default behavior for file availability sync
     parts = data.split('-')
     if len(parts) < 3:
         return
@@ -274,7 +295,6 @@ def handle_file_syncing_listener(data):
     if user_id not in public_file_names_available:
         public_file_names_available[user_id] = []
 
-    # for private files so peers knows that it is private
     if file_type == "private":
         file_name = f"[PRIVATE] {file_name}" 
 
@@ -359,5 +379,6 @@ def file_change_watcher():
         for action, file_name in changes:
             message = f"FILE_UPDATE:{peer.my_peer_id}:{file_name}:{action}:{time.time()}"
             watcher_socket.sendto(message.encode(), ("<broadcast>", FILE_SYNC_LISTENER))
-            print(f"📢 Broadcasted: {file_name} was {action}")
+            log(f"📢 Broadcasted: {file_name} was {action}")
+            # print(f"📢 Broadcasted: {file_name} was {action}")
         time.sleep(5)

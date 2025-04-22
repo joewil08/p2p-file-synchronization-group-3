@@ -14,7 +14,7 @@ list_of_messages = {}
 
 
 def reply_to_message():
-    message = input("Enter message to send to user: ") 
+    message = input("Enter message to send to use       r: ") 
     sender_id = input("Enter the id of the user you want to send the message to:")
     try:
         original_address = peers_in_network.get(sender_id)
