@@ -92,9 +92,9 @@ def show_main_menu():
     print("Press 4 to open messaging center")
     print("Press 5 to manage list of trusted peers")
     print("Press 6 to manage folder subscriptions")
-    print("Press 7 to exit the network")
-    print("Press 6 to exit the network")
-    print("Press 7 to view activity log")  # NEW
+    print("Press 7 to view activity log")
+    print("Press 8 to exit the network")
+
     option = int(input("Select an option: \n"))
     return option
 
