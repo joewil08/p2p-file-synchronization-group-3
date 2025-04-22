@@ -6,6 +6,7 @@ from message import display_messages, reply_to_message, broadcast_message
 from peer import is_registered, remove_from_trusted_peer_list, add_to_trusted_peer_list
 import message
 from file_sync import view_activity_log
+import subscription
 
 
 '''THIS FILE SHOULD CONTAIN MINIMAL CODE, AVOID USING THIS FILE!!!'''
@@ -40,7 +41,34 @@ def message_submenu():
             case 1: display_messages()
             case 2: reply_to_message()
             case 3: broadcast_message()
-            
+
+def subscription_submenu():
+    stay_in_submenu = True
+    while stay_in_submenu:
+        print("\nPress 1 to share a folder for subscription")
+        print("Press 2 to discover shareable folders")
+        print("Press 3 to subscribe to a folder")
+        print("Press 4 to list your subscriptions")
+        print("Press 5 to list your shared folders")
+        print("Press 0 to go back to main menu")
+
+        option = int(input("Select an option: "))
+        match option:
+            case 0:
+                stay_in_submenu = False
+            case 1:
+                path = input("Enter the full path of the folder to share: ")
+                subscription.share_folder(path)
+            case 2:
+                subscription.discover_shareable_folders()
+            case 3:
+                folder_id = input("Enter the folder ID to subscribe to: ")
+                subscription.subscribe_to_folder(folder_id)
+            case 4:
+                subscription.list_my_subscriptions()
+            case 5:
+                subscription.list_my_shared_folders()
+
 def manage_list_of_trusted_peers():
     stay_in_file_submenu = True
     while stay_in_file_submenu:
@@ -63,6 +91,8 @@ def show_main_menu():
     print("Press 3 to open file sharing center")
     print("Press 4 to open messaging center")
     print("Press 5 to manage list of trusted peers")
+    print("Press 6 to manage folder subscriptions")
+    print("Press 7 to exit the network")
     print("Press 6 to exit the network")
     print("Press 7 to view activity log")  # NEW
     option = int(input("Select an option: \n"))
@@ -83,6 +113,7 @@ if __name__ == "__main__":
 
     # starts all servers related to file sharing
     start_file_listeners()
+    subscription.start_subscription_service()
 
     def exit_network():
         global using_application
@@ -101,7 +132,8 @@ if __name__ == "__main__":
             case 3: file_submenu()
             case 4: message_submenu()
             case 5: manage_list_of_trusted_peers()
-            case 6: exit_network()
+            case 6: subscription_submenu()
             case 7: view_activity_log()
+            case 8: exit_network()
 
 
