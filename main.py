@@ -5,6 +5,7 @@ from file_sync import view_public_files, add_new_directory, start_file_listeners
 from message import display_messages, reply_to_message, broadcast_message
 from peer import is_registered, remove_from_trusted_peer_list, add_to_trusted_peer_list
 import message
+from file_sync import view_activity_log
 import subscription
 
 
@@ -91,7 +92,9 @@ def show_main_menu():
     print("Press 4 to open messaging center")
     print("Press 5 to manage list of trusted peers")
     print("Press 6 to manage folder subscriptions")
-    print("Press 7 to exit the network")
+    print("Press 7 to view activity log")
+    print("Press 8 to exit the network")
+
     option = int(input("Select an option: \n"))
     return option
 
@@ -130,4 +133,7 @@ if __name__ == "__main__":
             case 4: message_submenu()
             case 5: manage_list_of_trusted_peers()
             case 6: subscription_submenu()
-            case 7: exit_network()
+            case 7: view_activity_log()
+            case 8: exit_network()
+
+
