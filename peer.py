@@ -40,7 +40,12 @@ def listen_for_new_peers():
             if file_name in public_file_names:
                 print(f"📦 Peer requested '{file_name}' — responding with my IP")
                 sockt.sendto(f"FILE_RESPONSE:{file_name}:{my_ip()}".encode(), addr)
-
+        elif message.startswith("PEER_EXIT::"):
+            exiting_peer_id = message.split("::")[1]
+            if exiting_peer_id in peers_in_network:
+                del peers_in_network[exiting_peer_id]
+                print(f"👋 {exiting_peer_id} has exited the network.")
+            continue
         else:
             peer_id = message
             if my_peer_id == peer_id:
@@ -170,4 +175,8 @@ def enter_p2p_network():
             share_status.start()
             current_time = time.time()
 
-            
+def exit_broadcast():
+    global self_peer
+    LEAVING_MESSAGE = f"PEER_EXIT::{self_peer}"
+    sockt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sockt.sendto(LEAVING_MESSAGE.encode(), ("<broadcast>", PEER_PORT))
