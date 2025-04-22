@@ -32,6 +32,13 @@ def listen_for_new_peers():
         response, addr = sockt.recvfrom(BUFFER_SIZE)
         message = response.decode()
 
+        if message.startswith("PEER_EXIT::"):
+            exiting_peer_id = message.split("::")[1]
+            if exiting_peer_id in peers_in_network:
+                del peers_in_network[exiting_peer_id]
+                print(f"👋 {exiting_peer_id} has exited the network.")
+            continue
+
         if message.startswith("FILE_REQUEST:"):
             from file_sync import public_file_names
             from utils.get_host_ip import my_ip
@@ -169,5 +176,12 @@ def enter_p2p_network():
             share_status = threading.Thread(target=discover_peers, daemon=True)
             share_status.start()
             current_time = time.time()
+
+
+def exit_broadcast():
+    global self_peer
+    LEAVING_MESSAGE = f"PEER_EXIT::{self_peer}"
+    sockt.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sockt.sendto(LEAVING_MESSAGE.encode(), ("<broadcast>", PEER_PORT))
 
             
