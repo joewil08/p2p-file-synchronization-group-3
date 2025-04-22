@@ -30,7 +30,7 @@ def generate_folder_id(path):
 def start_subscription_service():
     """Start all subscription-related threads"""
     threading.Thread(target=subscription_listener, daemon=True).start()
-    print("📂 Subscription service started") #TODO -> move to log
+    file_sync.log("📂 Subscription service started")
 
 
 def subscription_listener():
@@ -88,7 +88,9 @@ def handle_subscription_request(parts, addr):
         requester_ip = peer.get_ip_from_peer(requester_id)
         if requester_ip:
             subscription_socket.sendto(accept_msg.encode(), (requester_ip, SUBSCRIPTION_PORT))
-            print(f"✅ Subscription accepted for {requester_id} to {folder_id}") #TODO -> move to log
+            print(f"\n✅ Subscription accepted for {requester_id} to {folder_id}")
+            file_sync.log(f"\n✅ Subscription accepted for {requester_id} to {folder_id}")
+
 
 
 def handle_subscription_accept(parts):
@@ -167,7 +169,7 @@ def share_folder(path):
         "subscribers": []
     }
 
-    print(f"📂 Folder {path} is now shared with ID: {folder_id}")
+    file_sync.log(f"📂 Folder {path} is now shared with ID: {folder_id}")
     return folder_id
 
 

@@ -194,7 +194,7 @@ def file_sharing_server(filename, address):
     port = FILE_PORT    
 
     if not os.path.exists(filename) or filename == NOT_EXIST:
-        #print(f"Error: File {filename} does not exist")  #TODO -> remove print statement and add to log (user tried to access a file that does not exist)
+        log(f"Error: File {filename} does not exist")
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((ip, port))
         client_socket.sendall(NOT_EXIST.encode())
@@ -219,7 +219,7 @@ def file_sharing_server(filename, address):
 
         client_socket.sendall(file_hash.digest())
 
-        #print(f"Successfully sent file {os.path.basename(filename)} to a peer.") #TODO -> should be a log
+        log(f"Successfully sent file {os.path.basename(filename)} to a peer.")
     except Exception as e:
         print(f"Error sending file: {e}")
     finally:
@@ -273,10 +273,10 @@ def handle_file_syncing_listener(data):
     if data.startswith("FILE_UPDATE:"):
         try:
             _, peer_id, file_name, action, timestamp = data.split(":")
-            print(f"🟡 Peer update: {peer_id} {action} '{file_name}'") #TODO -> move to log
+            log(f"🟡 Peer update: {peer_id} {action} '{file_name}'")
             file_request_changes(peer_id, file_name)
         except Exception as e:
-            print(f"⚠️ Failed to parse update: {e}") #TODO -> move to log
+            log(f"⚠️ Failed to parse update: {e}")
         return
 
     parts = data.split('-')

@@ -4,6 +4,7 @@ import utils.generate_peer_id as generate_peer_id
 import time
 import utils.get_host_ip as get_host_ip
 import utils.validate_peers as validate_peers
+import file_sync
 
 
 
@@ -44,7 +45,7 @@ def listen_for_new_peers():
             exiting_peer_id = message.split("::")[1]
             if exiting_peer_id in peers_in_network:
                 del peers_in_network[exiting_peer_id]
-                print(f"👋 {exiting_peer_id} has exited the network.")
+                file_sync.log(f"👋 {exiting_peer_id} has exited the network.")
             continue
         else:
             peer_id = message
@@ -159,8 +160,7 @@ def view_peers_in_network():
     print("Peers in network = ", list(peers_in_network.keys()))
 
 def deregister():
-    #TODO
-    # Send a broadcast message to all peers to remove this peer from their list
+    exit_broadcast()
     global self_peer
     self_peer = None
 

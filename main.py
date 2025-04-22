@@ -63,7 +63,8 @@ def subscription_submenu():
                 subscription.discover_shareable_folders()
             case 3:
                 folder_id = input("Enter the folder ID to subscribe to: ")
-                subscription.subscribe_to_folder(folder_id)
+                if folder_id:
+                    subscription.subscribe_to_folder(folder_id)
             case 4:
                 subscription.list_my_subscriptions()
             case 5:
