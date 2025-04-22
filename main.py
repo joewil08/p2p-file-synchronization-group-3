@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
     def exit_network():
         global using_application
+        peer.exit_broadcast()
         peer.deregister()
         print("Exiting the network...")
         using_application = False
