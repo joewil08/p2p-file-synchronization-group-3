@@ -8,10 +8,10 @@ import peer
 import os
 import sys
 import hashlib
-
+import peer
 
 public_file_names_available = {}
-TRUSTED_LIST_OF_PEERS = peer.get_trusted_peers()
+TRUSTED_LIST_OF_PEERS = []
 
 # USED TO TRANSFER FILES
 FILE_PORT = 52000
@@ -68,6 +68,9 @@ def file_request_listener():
             log(f"📥 Received {request_type} file request: {file_name} from {addr}")
             # print(f"📥 Received {request_type} file request: {file_name} from {addr}")
             if request_type == "private":
+                if TRUSTED_LIST_OF_PEERS == []:
+                    TRUSTED_LIST_OF_PEERS = peer.get_trusted_peers()
+                    
                 if addr[0] not in TRUSTED_LIST_OF_PEERS and str(addr[0]) not in TRUSTED_LIST_OF_PEERS:
                     log(f"⛔ Unauthorized access attempt from {addr}")
                     # print(f"⛔ Unauthorized access attempt from {addr}")
