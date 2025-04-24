@@ -33,13 +33,15 @@ Using this application is straightforward. The main menu provides various option
     Add a User to Trusted List - Grants a user permission to access private files. (Caution: Trusted users can download all private files.)
     
     Remove user from trusted list of peers
-    
- Folder Subscription Feature:
-	As a peer, you can share any folder to the network for other people to subscribe to
-	As a peer, you can subscribe to any folder that is shared across the network
-	Once you subscribe to a folder, any changes that a peer that is subscribed to that folder makes, the changes will reflect on your machine and you will receive the latest version of the files.
 
-	
+  Folder Subscription Feature:
+    
+    As a peer, you can share any folder to the network for other people to subscribe to
+    
+    As a peer, you can subscribe to any folder that is shared across the network
+
+    Once you subscribe to a folder, any changes that a peer that is subscribed to that folder makes, the changes will reflect on your machine and you will receive the latest version of the files.
+
     
   Deregister/Exit:
   
