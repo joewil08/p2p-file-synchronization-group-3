@@ -34,6 +34,13 @@ Using this application is straightforward. The main menu provides various option
     
     Remove user from trusted list of peers
     
+ Folder Subscription Feature:
+	As a peer, you can share any folder to the network for other people to subscribe to
+	As a peer, you can subscribe to any folder that is shared across the network
+	Once you subscribe to a folder, any changes that a peer that is subscribed to that folder makes, the changes will reflect on your machine and you will receive the latest version of the files.
+
+	
+    
   Deregister/Exit:
   
     Broadcasts a message to notify peers that you are leaving the network
@@ -51,6 +58,8 @@ This application is designed to be simple and user-friendly. We automate key pro
   Seamless Peer Discovery:
   
     Peers are discovered automatically in the background, eliminating the need for manual peer searches.
+    
+    As of right now, this feature is not yet implemented and you are required to use the discover peer method.
 
 
 # FAQs & Support:
