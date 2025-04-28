@@ -77,6 +77,11 @@ Folder changes are automatically detected and broadcast to peers in real-time.
 
 # Diagrams
 
+![Architecture.png](diagrams/Architecture.png)
+![RegistrationFeature.png](diagrams/RegistrationFeature.png)
+![FileSharingFeature.png](diagrams/FileSharingFeature.png)
+![Subscription Feature.png](diagrams/Subscription%20Feature.png)
+
 # FAQs & Support:
 
 How do I download a private file?
