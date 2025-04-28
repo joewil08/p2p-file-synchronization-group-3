@@ -69,7 +69,7 @@ This application is designed to be simple and user-friendly. We automate key pro
 
 # P2P Architecture
 
-Peers discover each other automatically through broadcast and registration.
+Our code handles how peers join and interact within the network. When a peer starts the program, it generates a unique ID combining the username, IP address, and port number. The peer then broadcasts its ID using UDP, allowing other peers on the local network to discover it without needing a central server. When a peer receives a broadcast, it validates the incoming ID and adds the new peer to its local list, responding with its own ID to complete a two-way discovery. This system ensures that all peers are aware of each other and can synchronize files, messages, and updates automatically.
 Files are transferred directly between peers over TCP connections.
 Messaging and folder subscriptions are layered on top of the file sync core.
 Private file access is enforced via a trusted peer list (ACL).
