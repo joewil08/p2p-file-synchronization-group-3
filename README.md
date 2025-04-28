@@ -6,6 +6,10 @@ How to use this application:
 
 Using this application is straightforward. The main menu provides various options to navigate and interact with the network. The first step is to register in the network—this is required before using any features.
 
+# How to Run the Code
+
+Make sure all necessary libraries are installed and run main.py
+
 # Main Menu Options: 
 
   View Peers in the Network - Displays a list of currently active peers.
@@ -63,6 +67,15 @@ This application is designed to be simple and user-friendly. We automate key pro
     
     As of right now, this feature is not yet implemented and you are required to use the discover peer method.
 
+# P2P Architecture
+
+Peers discover each other automatically through broadcast and registration.
+Files are transferred directly between peers over TCP connections.
+Messaging and folder subscriptions are layered on top of the file sync core.
+Private file access is enforced via a trusted peer list (ACL).
+Folder changes are automatically detected and broadcast to peers in real-time.
+
+# Diagrams
 
 # FAQs & Support:
 
